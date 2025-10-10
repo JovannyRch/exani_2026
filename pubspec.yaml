@@ -1,0 +1,39 @@
+name: examen_vial_edomex_app_2025
+description: "A new Flutter project."
+
+version: 1.0.0+7
+
+environment:
+  sdk: ^3.7.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+  url_launcher: ^6.3.2
+  syncfusion_flutter_pdfviewer: ^31.1.19
+  dio: ^5.9.0
+  path_provider: ^2.1.5
+  open_filex: ^4.7.0
+  google_mobile_ads: ^5.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_native_splash: ^2.4.6
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/logo.png
+    - assets/files/guia_manejo.pdf
+
+flutter_native_splash:
+  color: "#121212"
+  image: assets/logo.png
+  android: true
+  ios: false
+  web: false
