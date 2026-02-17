@@ -12,7 +12,10 @@ class OnboardingScreen extends StatefulWidget {
 
   /// Callback al completar onboarding.
   /// Recibe fecha objetivo y módulos seleccionados.
-  final void Function({DateTime? targetDate, List<int> selectedModuleIds})
+  final Future<void> Function({
+    DateTime? targetDate,
+    List<int> selectedModuleIds,
+  })
   onComplete;
 
   const OnboardingScreen({
@@ -31,6 +34,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   int _currentPage = 0;
   DateTime? _targetDate;
   final Set<int> _selectedModuleIds = {};
+  bool _isLoading = false;
 
   bool get _isExaniII => widget.examId == 1;
   int get _totalPages => _isExaniII ? 2 : 1; // EXANI-I no tiene step de módulos
@@ -41,7 +45,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     super.dispose();
   }
 
-  void _nextPage() {
+  Future<void> _nextPage() async {
     if (_currentPage < _totalPages - 1) {
       _pageController.nextPage(
         duration: const Duration(milliseconds: 300),
@@ -49,10 +53,24 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       );
       setState(() => _currentPage++);
     } else {
-      widget.onComplete(
-        targetDate: _targetDate,
-        selectedModuleIds: _selectedModuleIds.toList(),
-      );
+      // Mostrar loading mientras guarda y navega
+      setState(() => _isLoading = true);
+      try {
+        await widget.onComplete(
+          targetDate: _targetDate,
+          selectedModuleIds: _selectedModuleIds.toList(),
+        );
+      } catch (e) {
+        if (mounted) {
+          setState(() => _isLoading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error al guardar: $e'),
+              backgroundColor: AppColors.red,
+            ),
+          );
+        }
+      }
     }
   }
 
@@ -146,15 +164,25 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
               child: Column(
                 children: [
-                  DuoButton(
-                    text:
-                        _currentPage == _totalPages - 1
-                            ? 'Comenzar'
-                            : 'Siguiente',
-                    color: AppColors.primary,
-                    onPressed: _nextPage,
-                  ),
-                  if (_currentPage == 0) ...[
+                  if (_isLoading)
+                    const SizedBox(
+                      height: 50,
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    )
+                  else
+                    DuoButton(
+                      text:
+                          _currentPage == _totalPages - 1
+                              ? 'Comenzar'
+                              : 'Siguiente',
+                      color: AppColors.primary,
+                      onPressed: _nextPage,
+                    ),
+                  if (_currentPage == 0 && !_isLoading) ...[
                     const SizedBox(height: 12),
                     GestureDetector(
                       onTap: _nextPage,
