@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 class AdMobService {
-  static const bool _testAds = true; // Cambiar a false en producción
+  static const bool _testAds = true; // TODO: Cambiar a false en producción
 
   // IDs de prueba de AdMob
   static const String _testBannerAdUnitId =
@@ -11,12 +11,10 @@ class AdMobService {
   static const String _testInterstitialAdUnitId =
       'ca-app-pub-3940256099942544/1033173712';
 
-  // IDs reales (reemplazar con tus IDs de AdMob)
-  // TODO: Reemplazar con tus IDs reales de AdMob
   static const String _prodBannerAdUnitId =
-      'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX';
+      'ca-app-pub-4665787383933447/7025353869';
   static const String _prodInterstitialAdUnitId =
-      'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX';
+      'ca-app-pub-4665787383933447/9409633180';
 
   static String get bannerAdUnitId {
     if (_testAds) {

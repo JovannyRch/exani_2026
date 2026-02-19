@@ -39,8 +39,8 @@ class SessionEngine extends ChangeNotifier {
   SessionEngine({
     required SessionRepository repository,
     QuestionSelector? selector,
-  })  : _repository = repository,
-        _selector = selector ?? QuestionSelector();
+  }) : _repository = repository,
+       _selector = selector ?? QuestionSelector();
 
   // ─── Estado observable ──────────────────────────────────────────────────
 
@@ -128,10 +128,9 @@ class SessionEngine extends ChangeNotifier {
       // 3. Crear session questions en orden
       final sessionQuestions = <SessionQuestion>[];
       for (var i = 0; i < questionIds.length; i++) {
-        sessionQuestions.add(SessionQuestion(
-          questionId: questionIds[i],
-          order: i + 1,
-        ));
+        sessionQuestions.add(
+          SessionQuestion(questionId: questionIds[i], order: i + 1),
+        );
       }
 
       // 4. Crear sesión
@@ -144,7 +143,10 @@ class SessionEngine extends ChangeNotifier {
 
       // 5. Persistir sesión
       final sessionId = await _repository.createSession(_session!);
-      _session = _session!.copyWith(id: sessionId, status: SessionStatus.inProgress);
+      _session = _session!.copyWith(
+        id: sessionId,
+        status: SessionStatus.inProgress,
+      );
 
       // 6. Arrancar cronómetro de la primera pregunta
       _questionStopwatch
@@ -170,7 +172,10 @@ class SessionEngine extends ChangeNotifier {
       }
 
       _session = session.copyWith(status: SessionStatus.inProgress);
-      await _repository.updateSessionStatus(sessionId, SessionStatus.inProgress);
+      await _repository.updateSessionStatus(
+        sessionId,
+        SessionStatus.inProgress,
+      );
 
       // Cargar preguntas
       final ids = session.questions.map((q) => q.questionId).toList();
@@ -218,7 +223,9 @@ class SessionEngine extends ChangeNotifier {
     );
 
     final updatedQuestions = List<SessionQuestion>.from(_session!.questions);
-    final idx = updatedQuestions.indexWhere((q) => q.questionId == sq.questionId);
+    final idx = updatedQuestions.indexWhere(
+      (q) => q.questionId == sq.questionId,
+    );
     if (idx >= 0) updatedQuestions[idx] = updatedSq;
 
     _session = _session!.copyWith(questions: updatedQuestions);
@@ -391,8 +398,34 @@ class SessionEngine extends ChangeNotifier {
         totalTimeMs: _session!.totalTimeMs,
       );
 
-      // TODO: Refrescar stats de skills tocadas cuando Question tenga skillId.
-      // Por ahora el repository se encarga vía queries en completeSession().
+      // Refresh stats for all skills touched in this session
+      await _refreshTouchedSkillsStats();
+    }
+  }
+
+  /// Actualiza las estadísticas de todas las skills tocadas en la sesión.
+  Future<void> _refreshTouchedSkillsStats() async {
+    // Collect unique skill IDs from all questions in this session
+    final skillIds = <int>{};
+
+    for (final question in _questions) {
+      if (question.skillId != null) {
+        skillIds.add(question.skillId!);
+      }
+    }
+
+    // Refresh stats for each skill
+    for (final skillId in skillIds) {
+      try {
+        await _repository.refreshSkillStats(skillId);
+        debugPrint('✅ Refreshed stats for skill $skillId');
+      } catch (e) {
+        debugPrint('❌ Error refreshing stats for skill $skillId: $e');
+      }
+    }
+
+    if (skillIds.isNotEmpty) {
+      debugPrint('📊 Refreshed stats for ${skillIds.length} skills');
     }
   }
 

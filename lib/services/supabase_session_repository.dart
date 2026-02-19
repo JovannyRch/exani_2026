@@ -478,6 +478,7 @@ class SupabaseSessionRepository implements SessionRepository {
       options: options,
       correctOptionId: correctIndex,
       category: QuestionCategory.senales, // TODO: mapear desde section/area
+      skillId: row['skill_id'] as int?,
       imagePath: row['stem_image'] as String?,
       stemImages: stemImagesJson.cast<String>(),
       explanation: row['explanation'] as String?,

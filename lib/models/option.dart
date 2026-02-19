@@ -49,6 +49,9 @@ class Question {
   final int correctOptionId;
   final QuestionCategory category;
 
+  /// ID de la skill a la que pertenece esta pregunta (para Supabase)
+  final int? skillId;
+
   /// Imagen principal de la pregunta (señal de tránsito, diagrama, etc.)
   /// Puede ser asset path o URL remota
   final String? imagePath;
@@ -75,6 +78,7 @@ class Question {
     required this.options,
     required this.correctOptionId,
     required this.category,
+    this.skillId,
     this.imagePath,
     this.stemImages = const [],
     this.explanation,
@@ -125,5 +129,77 @@ class Question {
     selected.shuffle();
 
     return selected;
+  }
+
+  /// Factory constructor para crear Question desde datos de Supabase
+  factory Question.fromSupabase(Map<String, dynamic> json) {
+    // Parse options_json from Supabase
+    final optionsJson = json['options_json'] as List<dynamic>;
+    final correctKey = json['correct_key'] as String;
+
+    // Convert options with mapping key -> id (a=1, b=2, c=3, d=4)
+    final options = <Option>[];
+    int correctOptionId = 1;
+
+    for (int i = 0; i < optionsJson.length; i++) {
+      final opt = optionsJson[i] as Map<String, dynamic>;
+      final key = opt['key'] as String;
+      final id = i + 1; // Use 1-based indexing
+
+      options.add(
+        Option(
+          id: id,
+          text: opt['text'] as String,
+          imagePath: opt['image'] as String?,
+        ),
+      );
+
+      // Track which id corresponds to the correct key
+      if (key == correctKey) {
+        correctOptionId = id;
+      }
+    }
+
+    // Parse difficulty
+    final difficultyStr = json['difficulty'] as String?;
+    final difficulty =
+        difficultyStr != null
+            ? QuestionDifficulty.values.firstWhere(
+              (d) => d.name == difficultyStr,
+              orElse: () => QuestionDifficulty.medium,
+            )
+            : QuestionDifficulty.medium;
+
+    // Parse tags
+    final tagsJson = json['tags_json'] as List<dynamic>? ?? [];
+    final tags = tagsJson.map((t) => t.toString()).toList();
+
+    // Parse images
+    final stemImagesJson = json['stem_images_json'] as List<dynamic>? ?? [];
+    final stemImages = stemImagesJson.map((img) => img.toString()).toList();
+
+    final explanationImagesJson =
+        json['explanation_images_json'] as List<dynamic>? ?? [];
+    final explanationImages =
+        explanationImagesJson.map((img) => img.toString()).toList();
+
+    // Use a default category or derive from tags
+    // For EXANI, we don't use categories, so default to first category
+    final category = QuestionCategory.senales;
+
+    return Question(
+      id: json['id'] as int,
+      text: json['stem'] as String,
+      options: options,
+      correctOptionId: correctOptionId,
+      category: category,
+      skillId: json['skill_id'] as int?,
+      imagePath: json['stem_image'] as String?,
+      stemImages: stemImages,
+      explanation: json['explanation'] as String?,
+      explanationImages: explanationImages,
+      difficulty: difficulty,
+      tags: tags,
+    );
   }
 }

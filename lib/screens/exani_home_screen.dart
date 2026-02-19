@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:exani/models/option.dart';
 import 'package:exani/screens/guide_screen.dart';
 import 'package:exani/screens/leaderboard_screen.dart';
 import 'package:exani/screens/practice_setup_screen.dart';
 import 'package:exani/screens/pro_screen.dart';
+import 'package:exani/screens/simulation_screen.dart';
 import 'package:exani/services/database_service.dart';
 import 'package:exani/services/purchase_service.dart';
 import 'package:exani/services/sound_service.dart';
+import 'package:exani/services/supabase_service.dart';
 import 'package:exani/services/theme_service.dart';
 import 'package:exani/theme/app_theme.dart';
 import 'package:exani/widgets/ad_banner_widget.dart';
+import 'package:exani/widgets/app_loader.dart';
 import 'package:exani/widgets/duo_button.dart';
-import 'package:exani/data/data.dart';
-import 'package:exani/screens/exam_screen.dart';
 
 /// Pantalla 4 MVP — Home post-onboarding.
 /// Dashboard EXANI con:  stats, Next Best Session, cards de acción, leaderboard preview
@@ -88,16 +90,62 @@ class _ExaniHomeScreenState extends State<ExaniHomeScreen>
   Future<void> _loadStats() async {
     try {
       final stats = await DatabaseService().getAllStats();
+
+      // Get weakest area from Supabase user stats
+      String? weakArea;
+      try {
+        final examId = int.tryParse(widget.examId);
+        if (examId != null) {
+          weakArea = await SupabaseService().getWeakestAreaName(examId: examId);
+        }
+      } catch (e) {
+        // Ignore if not logged in or no data yet
+      }
+
       if (mounted) {
         setState(() {
           _totalSessions = stats['totalExams'] as int;
           _avgAccuracy = (stats['bestScore'] as num).round();
           _streak = stats['streak'] as int;
-          // TODO: Obtener del SessionRepository el área más débil
-          _weakAreaName = 'Pensamiento Matemático';
+          _weakAreaName = weakArea ?? '';
         });
       }
     } catch (_) {}
+  }
+
+  /// Carga todas las preguntas disponibles para el examen desde Supabase
+  Future<List<Question>> _loadAllQuestions() async {
+    try {
+      final examId = int.tryParse(widget.examId) ?? 1;
+
+      // Get all sections for this exam
+      final sectionsData = await SupabaseService().getSectionsHierarchy(examId);
+
+      // Collect all questions from all sections
+      final allQuestions = <Question>[];
+
+      for (final sectionData in sectionsData) {
+        final sectionId = sectionData['id'] as int;
+
+        // Get questions for this section (limit per section to avoid too many)
+        final questionsData = await SupabaseService().getQuestionsBySection(
+          sectionId: sectionId,
+          limit: 50, // Reasonable limit per section
+        );
+
+        // Convert to Question objects
+        final questions =
+            questionsData.map((q) => Question.fromSupabase(q)).toList();
+
+        allQuestions.addAll(questions);
+      }
+
+      debugPrint('📚 Loaded ${allQuestions.length} questions for study guide');
+      return allQuestions;
+    } catch (e) {
+      debugPrint('❌ Error loading questions: $e');
+      return [];
+    }
   }
 
   Route _slideRoute(Widget page) {
@@ -166,10 +214,14 @@ class _ExaniHomeScreenState extends State<ExaniHomeScreen>
                           subtitle:
                               'Examen cronometrado con condiciones reales',
                           onTap: () {
-                            // TODO: Lanzar SimulationScreen
                             Navigator.push(
                               context,
-                              _slideRoute(ExamScreen(allQuestions: questions)),
+                              _slideRoute(
+                                SimulationScreen(
+                                  examId: widget.examId,
+                                  examName: widget.examName,
+                                ),
+                              ),
                             ).then((_) => _loadStats());
                           },
                         ),
@@ -182,13 +234,45 @@ class _ExaniHomeScreenState extends State<ExaniHomeScreen>
                           color: AppColors.purple,
                           title: 'Guía de estudio',
                           subtitle: 'Repasa las preguntas con sus respuestas',
-                          onTap:
-                              () => Navigator.push(
+                          onTap: () async {
+                            // Show loading indicator
+                            AppLoading.show(
+                              context,
+                              message: 'Cargando preguntas...',
+                              dismissible: false,
+                            );
+
+                            // Load questions from Supabase
+                            final questions = await _loadAllQuestions();
+
+                            // Hide loading
+                            if (context.mounted) AppLoading.hide(context);
+
+                            // Check if we got questions
+                            if (questions.isEmpty) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: const Text(
+                                      'No hay preguntas disponibles',
+                                    ),
+                                    backgroundColor: AppColors.red,
+                                  ),
+                                );
+                              }
+                              return;
+                            }
+
+                            // Navigate to guide screen
+                            if (context.mounted) {
+                              Navigator.push(
                                 context,
                                 _slideRoute(
                                   GuideScreen(allQuestions: questions),
                                 ),
-                              ),
+                              );
+                            }
+                          },
                         ),
                       ),
                       const SizedBox(height: 20),
@@ -400,13 +484,13 @@ class _ExaniHomeScreenState extends State<ExaniHomeScreen>
           const SizedBox(height: 14),
           DuoButton(
             text: 'Comenzar práctica',
-            color: Colors.white,
+            color: AppColors.orange,
             icon: Icons.play_arrow_rounded,
             onPressed: () {
-              // TODO: Lanzar SessionEngine con práctica adaptativa
+              // Navigate to practice setup for adaptive practice
               Navigator.push(
                 context,
-                _slideRoute(ExamScreen(allQuestions: questions)),
+                _slideRoute(PracticeSetupScreen(examId: widget.examId)),
               ).then((_) => _loadStats());
             },
           ),

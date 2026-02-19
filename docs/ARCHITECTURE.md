@@ -14,30 +14,46 @@ lib/
 ├── theme/
 │   └── app_theme.dart        # AppColors + AppTheme (light/dark)
 ├── models/
-│   ├── question.dart         # Modelo de pregunta
-│   ├── option.dart           # Modelo de opción de respuesta
-│   ├── exam_result.dart      # Modelo de resultado de examen (SQLite)
-│   └── question_stat.dart    # Estadísticas por pregunta
-├── data/
-│   └── data.dart             # Datos (preguntas, categorías)
+│   ├── option.dart           # Question y Option models (con skillId)
+│   ├── exam_result.dart      # Modelo de resultado de examen
+│   ├── question_stat.dart    # Estadísticas por pregunta
+│   ├── session.dart          # SessionConfig y SessionMode
+│   └── leaderboard.dart      # Leaderboard entries
 ├── services/
-│   ├── theme_service.dart    # Persistencia de tema dark/light
-│   ├── admob_service.dart    # Ads (banner + interstitial)
-│   ├── sound_service.dart    # Efectos de sonido
-│   ├── notification_service.dart  # Recordatorios diarios
-│   ├── purchase_service.dart # In-app purchase (Pro version)
-│   └── database_service.dart # SQLite (resultados + favoritos)
+│   ├── supabase_service.dart         # Cliente Supabase con helpers
+│   ├── supabase_session_repository.dart # Implementación Supabase del repo
+│   ├── session_repository.dart       # Interface para session data
+│   ├── session_engine.dart           # Motor de sesiones (diagnostic/practice/simulation)
+│   ├── question_selector.dart        # Selección inteligente de preguntas
+│   ├── cache_service.dart            # Caché con TTL (in-memory + SharedPreferences)
+│   ├── leaderboard_service.dart      # Tabla de posiciones global
+│   ├── theme_service.dart            # Persistencia de tema dark/light
+│   ├── admob_service.dart            # Ads (banner + interstitial)
+│   ├── sound_service.dart            # Efectos de sonido
+│   ├── notification_service.dart     # Recordatorios diarios
+│   ├── purchase_service.dart         # In-app purchase (Pro version)
+│   └── database_service.dart         # SQLite (resultados + favoritos)
 ├── screens/
-│   ├── home_screen.dart      # Pantalla principal
-│   ├── exam_screen.dart      # Examen + ResultsScreen
-│   ├── review_screen.dart    # Revisión post-examen
-│   ├── guide_screen.dart     # Guía de estudio (todas las preguntas)
-│   ├── category_screen.dart  # Práctica por categoría
-│   ├── favorites_screen.dart # Preguntas guardadas/falladas
-│   ├── progress_screen.dart  # Estadísticas y gráficas
-│   ├── info_screen.dart      # Información general
-│   ├── pro_screen.dart       # Pantalla de compra Premium
-│   └── pdf_viewer_screen.dart # Visor de PDF
+│   ├── auth_gate.dart                # Control de autenticación y onboarding
+│   ├── auth_screen.dart              # Login/Registro con Supabase Auth
+│   ├── exam_selection_screen.dart    # Selección de examen inicial
+│   ├── onboarding_screen.dart        # Walkthrough inicial
+│   ├── exani_home_screen.dart   # Botón 3D estilo Duolingo
+    ├── ad_banner_widget.dart    # Banner de AdMob reutilizable
+    ├── app_loader.dart          # Loaders profesionales estilo Duolingo
+    ├── content_image.dart       # Visor de imágenes en preguntas
+    └── exani_widgets.dart       # Widgets reutilizablesección→área→skill)
+│   ├── simulation_screen.dart        # Pre-simulacro con reglas
+│   ├── exam_screen.dart              # Pantalla de examen con timer
+│   ├── diagnostic_result_screen.dart # Resultados con análisis de áreas
+│   ├── review_screen.dart            # Revisión post-examen
+│   ├── guide_screen.dart             # Guía de estudio (todas las preguntas)
+│   ├── progress_screen.dart          # Estadísticas y gráficas
+│   ├── leaderboard_screen.dart       # Tabla de posiciones
+│   ├── favorites_screen.dart         # Preguntas guardadas
+│   ├── info_screen.dart              # Información general
+│   ├── pro_screen.dart               # Pantalla de compra Premium
+│   └── pdf_viewer_screen.dart        # Visor de PDF
 └── widgets/
     ├── duo_button.dart       # Botón 3D estilo Duolingo
     └── ad_banner_widget.dart # Banner de AdMob reutilizable

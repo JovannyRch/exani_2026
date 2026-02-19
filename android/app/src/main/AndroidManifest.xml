@@ -13,12 +13,9 @@
         android:icon="@mipmap/ic_launcher">
     <!-- AdMob App ID — TODO: Reemplazar con tu ID -->
     <!-- Comentado temporalmente para evitar crash -->
-    <!--
     <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-XXXXXXXXXXXXXXXX~XXXXXXXXXX"/>
-    -->
-    <!-- Deshabilitar AdMob ContentProvider temporalmente -->
+            android:value="ca-app-pub-4665787383933447~5119034381"/>
     <provider
             android:name="com.google.android.gms.ads.MobileAdsInitProvider"
             android:authorities="${applicationId}.mobileadsinitprovider"

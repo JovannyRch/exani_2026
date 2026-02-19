@@ -19,7 +19,7 @@ void main() async {
   );
   await SupabaseService().initialize();
   await ThemeService().initialize();
-  // await AdMobService.initialize(); // TODO: Configurar AdMob ID real
+  await AdMobService.initialize(); // TODO: Configurar AdMob ID real
   await SoundService().initialize();
   await NotificationService().initialize();
   await PurchaseService().initialize();
