@@ -1,6 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
-import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:exani/services/admob_service.dart';
@@ -9,9 +10,14 @@ import 'package:exani/theme/app_theme.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 class PdfViewerScreen extends StatefulWidget {
-  final String pdfUrl;
+  final String pdfAssetPath;
+  final String title;
 
-  const PdfViewerScreen({super.key, required this.pdfUrl});
+  const PdfViewerScreen({
+    super.key,
+    required this.pdfAssetPath,
+    this.title = 'Guía en PDF',
+  });
 
   @override
   State<PdfViewerScreen> createState() => _PdfViewerScreenState();
@@ -54,15 +60,22 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
 
     try {
       final dir = await getApplicationDocumentsDirectory();
-      final filePath = "${dir.path}/guia_manejo.pdf";
+      final fileName = widget.pdfAssetPath.split('/').last;
+      final filePath = "${dir.path}/$fileName";
 
-      await Dio().download(
-        widget.pdfUrl,
-        filePath,
-        onReceiveProgress: (count, total) {
-          setState(() => progress = count / total);
-        },
-      );
+      // Copy from asset to downloads directory
+      final byteData = await DefaultAssetBundle.of(
+        context,
+      ).load(widget.pdfAssetPath);
+      final bytes = byteData.buffer.asUint8List();
+      final file = File(filePath);
+      await file.writeAsBytes(bytes);
+
+      // Simulate progress for UX
+      for (int i = 0; i <= 100; i += 10) {
+        await Future.delayed(const Duration(milliseconds: 50));
+        if (mounted) setState(() => progress = i / 100);
+      }
 
       setState(() {
         isDownloading = false;
@@ -119,7 +132,7 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Guía en PDF'),
+        title: Text(widget.title),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => Navigator.pop(context),
@@ -163,7 +176,7 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
       ),
       body: ClipRRect(
         borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-        child: SfPdfViewer.asset('assets/files/guia_manejo.pdf'),
+        child: SfPdfViewer.asset(widget.pdfAssetPath),
       ),
     );
   }

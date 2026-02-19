@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:exani/screens/auth_screen.dart';
 import 'package:exani/screens/exam_selection_screen.dart';
+import 'package:exani/screens/onboarding_screen.dart';
 import 'package:exani/screens/exani_home_screen.dart';
 import 'package:exani/services/supabase_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -8,9 +9,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 /// Widget raíz que escucha el estado de autenticación y muestra
 /// AuthScreen o el flujo de onboarding según corresponda.
 ///
-/// Flujo simplificado:
+/// Flujo completo:
 ///   No logueado → AuthScreen
-///   Logueado + !onboarding_done → ExamSelectionScreen → ExaniHomeScreen
+///   Logueado + !onboarding_done → ExamSelectionScreen → OnboardingScreen (fecha + módulos) → ExaniHomeScreen
 ///   Logueado + onboarding_done  → ExaniHomeScreen
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
@@ -55,17 +56,34 @@ class _AuthGateState extends State<AuthGate> {
 }
 
 /// Router que decide qué pantalla mostrar según el estado de onboarding del usuario.
-class _HomeRouter extends StatelessWidget {
+class _HomeRouter extends StatefulWidget {
   final String userId;
 
   const _HomeRouter({required this.userId});
+
+  @override
+  State<_HomeRouter> createState() => _HomeRouterState();
+}
+
+class _HomeRouterState extends State<_HomeRouter> {
+  bool _needsRefresh = false;
+
+  void _handleOnboardingComplete() {
+    // Forzar reconstrucción después de guardar onboarding
+    if (mounted) {
+      setState(() {
+        _needsRefresh = true;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final sb = SupabaseService();
 
     return FutureBuilder<Map<String, dynamic>?>(
-      future: sb.profiles.select().eq('id', userId).maybeSingle(),
+      key: ValueKey(_needsRefresh), // Forzar reconstrucción
+      future: sb.profiles.select().eq('id', widget.userId).maybeSingle(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return const _SplashLoading();
@@ -76,27 +94,55 @@ class _HomeRouter extends StatelessWidget {
         // Si no existe perfil o onboarding_done es false/null → flujo de onboarding
         if (profile == null || profile['onboarding_done'] != true) {
           return ExamSelectionScreen(
-            onExamSelected: (examId) async {
-              try {
-                // Guardar solo el examen seleccionado, sin fecha ni módulos (simplificado)
-                await sb.saveOnboardingData(
-                  examId: examId,
-                  examDate: null, // Omitido temporalmente
-                  moduleIds: [], // Omitido temporalmente
-                );
+            onExamSelected: (examId) {
+              // Navegar a OnboardingScreen para completar fecha y módulos
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder:
+                      (_) => OnboardingScreen(
+                        examId: examId,
+                        examName: examId == 1 ? 'EXANI-II' : 'EXANI-I',
+                        onComplete: ({
+                          targetDate,
+                          selectedModuleIds = const [],
+                        }) async {
+                          try {
+                            debugPrint(
+                              'Guardando onboarding: examId=$examId, date=$targetDate, modules=$selectedModuleIds',
+                            );
 
-                // El StreamBuilder detectará el cambio en onboarding_done
-                // y navegará automáticamente a ExaniHomeScreen
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Error al guardar: $e'),
-                      backgroundColor: const Color(0xFFFF4B4B),
-                    ),
-                  );
-                }
-              }
+                            await sb.saveOnboardingData(
+                              examId: examId,
+                              examDate: targetDate,
+                              moduleIds: selectedModuleIds,
+                            );
+
+                            debugPrint('Onboarding data saved successfully');
+
+                            // Cerrar todas las pantallas de onboarding y volver al router
+                            if (context.mounted) {
+                              Navigator.of(
+                                context,
+                              ).popUntil((route) => route.isFirst);
+                            }
+
+                            // Forzar reconstrucción del router para mostrar home
+                            _handleOnboardingComplete();
+                          } catch (e) {
+                            debugPrint('Error guardando onboarding: $e');
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Error al guardar: $e'),
+                                  backgroundColor: const Color(0xFFFF4B4B),
+                                ),
+                              );
+                            }
+                          }
+                        },
+                      ),
+                ),
+              );
             },
           );
         }

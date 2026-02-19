@@ -219,10 +219,10 @@ class _AuthScreenState extends State<AuthScreen>
                       color: AppColors.primary.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(
-                      Icons.school_rounded,
-                      size: 56,
-                      color: AppColors.primary,
+                    child: Image(
+                      image: AssetImage('assets/logo.png'),
+                      width: 64,
+                      height: 64,
                     ),
                   ),
                   const SizedBox(height: 20),

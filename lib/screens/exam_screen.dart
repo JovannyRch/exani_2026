@@ -771,7 +771,7 @@ class _ResultsScreenState extends State<ResultsScreen>
                   final emoji = passed ? '✅' : '💪';
                   final status = passed ? '¡Aprobé' : 'Obtuve $pct en';
                   final text =
-                      '$status mi examen de práctica vial EdoMex con $score $emoji 🚗\n\n'
+                      '$status mi examen de preparación $score $emoji 🎓\n\n'
                       'Prepárate para tu examen de manejo con esta app:\n'
                       '$PLAYSTORE_APP_ID';
                   SharePlus.instance.share(ShareParams(text: text));

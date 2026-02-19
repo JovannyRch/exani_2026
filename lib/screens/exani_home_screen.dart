@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:exani/models/option.dart';
 import 'package:exani/screens/guide_screen.dart';
 import 'package:exani/screens/leaderboard_screen.dart';
+import 'package:exani/screens/pdf_viewer_screen.dart';
 import 'package:exani/screens/practice_setup_screen.dart';
 import 'package:exani/screens/pro_screen.dart';
 import 'package:exani/screens/simulation_screen.dart';
@@ -57,7 +58,7 @@ class _ExaniHomeScreenState extends State<ExaniHomeScreen>
     _activeExamName = widget.examName;
     _loadStats();
 
-    _controllers = List.generate(7, (index) {
+    _controllers = List.generate(8, (index) {
       return AnimationController(
         vsync: this,
         duration: Duration(milliseconds: 500 + (index * 150)),
@@ -273,6 +274,32 @@ class _ExaniHomeScreenState extends State<ExaniHomeScreen>
                       _buildAnimatedWidget(
                         4,
                         _buildActionCard(
+                          icon: Icons.picture_as_pdf_rounded,
+                          color: AppColors.red,
+                          title: 'Guía Oficial PDF',
+                          subtitle: 'Descarga y consulta la guía completa',
+                          onTap: () {
+                            final pdfPath =
+                                _activeExamId == 1
+                                    ? 'assets/files/guia_exani_ii.pdf'
+                                    : 'assets/files/guia_exani_i.pdf';
+
+                            Navigator.push(
+                              context,
+                              _slideRoute(
+                                PdfViewerScreen(
+                                  pdfAssetPath: pdfPath,
+                                  title: 'Guía $_activeExamName',
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildAnimatedWidget(
+                        5,
+                        _buildActionCard(
                           icon: Icons.menu_book_rounded,
                           color: AppColors.purple,
                           title: 'Guía de estudio',
@@ -319,13 +346,13 @@ class _ExaniHomeScreenState extends State<ExaniHomeScreen>
                         ),
                       ),
                       const SizedBox(height: 20),
-                      _buildAnimatedWidget(5, _buildLeaderboardPreview()),
+                      _buildAnimatedWidget(6, _buildLeaderboardPreview()),
                       const SizedBox(height: 16),
                       ValueListenableBuilder<bool>(
                         valueListenable: PurchaseService().isPro,
                         builder: (context, isPro, _) {
                           return _buildAnimatedWidget(
-                            6,
+                            7,
                             _buildProBanner(isPro),
                           );
                         },

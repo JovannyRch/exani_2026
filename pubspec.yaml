@@ -42,7 +42,8 @@ flutter:
 
   assets:
     - assets/logo.png
-    - assets/files/guia_manejo.pdf
+    - assets/files/guia_exani_ii.pdf
+    - assets/files/guia_exani_i.pdf
     - assets/sounds/
 
 flutter_native_splash:
