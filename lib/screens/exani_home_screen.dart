@@ -122,13 +122,14 @@ class _ExaniHomeScreenState extends State<ExaniHomeScreen>
   Future<void> _onExamChanged(int newExamId) async {
     // Cargar nombre del examen desde la base de datos
     try {
-      final examData = await SupabaseService().exams
-          .select()
-          .eq('id', newExamId)
-          .maybeSingle();
-      
+      final examData =
+          await SupabaseService().exams
+              .select()
+              .eq('id', newExamId)
+              .maybeSingle();
+
       final examName = examData?['name'] as String? ?? 'EXANI';
-      
+
       setState(() {
         _activeExamId = newExamId;
         _activeExamName = examName;
@@ -136,7 +137,7 @@ class _ExaniHomeScreenState extends State<ExaniHomeScreen>
     } catch (e) {
       setState(() => _activeExamId = newExamId);
     }
-    
+
     await _loadStats();
 
     // Opcional: Mostrar mensaje de confirmación
