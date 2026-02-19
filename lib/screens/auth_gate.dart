@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:exani/screens/auth_screen.dart';
 import 'package:exani/screens/exam_selection_screen.dart';
-import 'package:exani/screens/onboarding_screen.dart';
 import 'package:exani/screens/exani_home_screen.dart';
 import 'package:exani/services/supabase_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -9,9 +8,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 /// Widget raíz que escucha el estado de autenticación y muestra
 /// AuthScreen o el flujo de onboarding según corresponda.
 ///
-/// Flujo completo:
+/// Flujo simplificado:
 ///   No logueado → AuthScreen
-///   Logueado + !onboarding_done → ExamSelectionScreen → OnboardingScreen → ExaniHomeScreen
+///   Logueado + !onboarding_done → ExamSelectionScreen → ExaniHomeScreen
 ///   Logueado + onboarding_done  → ExaniHomeScreen
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
@@ -78,54 +77,32 @@ class _HomeRouter extends StatelessWidget {
         if (profile == null || profile['onboarding_done'] != true) {
           return ExamSelectionScreen(
             onExamSelected: (examId) async {
-              final examName = examId == 1 ? 'EXANI-II' : 'EXANI-I';
+              try {
+                // Guardar solo el examen seleccionado, sin fecha ni módulos (simplificado)
+                await sb.saveOnboardingData(
+                  examId: examId,
+                  examDate: null, // Omitido temporalmente
+                  moduleIds: [], // Omitido temporalmente
+                );
 
-              // Navegar a OnboardingScreen
-              await Navigator.of(context).pushReplacement(
-                MaterialPageRoute(
-                  builder:
-                      (_) => OnboardingScreen(
-                        examId: examId,
-                        examName: examName,
-                        onComplete: ({
-                          targetDate,
-                          selectedModuleIds = const [],
-                        }) async {
-                          // Guardar datos de onboarding en Supabase
-                          await sb.saveOnboardingData(
-                            examId: examId,
-                            examDate: targetDate,
-                            moduleIds: selectedModuleIds,
-                          );
-
-                          // Navegar al dashboard principal
-                          if (context.mounted) {
-                            Navigator.of(context).pushReplacement(
-                              MaterialPageRoute(
-                                builder:
-                                    (_) => ExaniHomeScreen(
-                                      examId: examId.toString(),
-                                      examName: examName,
-                                      examDate: targetDate,
-                                      moduleIds:
-                                          selectedModuleIds
-                                              .map((id) => id.toString())
-                                              .toList(),
-                                    ),
-                              ),
-                            );
-                          }
-                        },
-                      ),
-                ),
-              );
+                // El StreamBuilder detectará el cambio en onboarding_done
+                // y navegará automáticamente a ExaniHomeScreen
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error al guardar: $e'),
+                      backgroundColor: const Color(0xFFFF4B4B),
+                    ),
+                  );
+                }
+              }
             },
           );
         }
 
         // Usuario completó onboarding → dashboard principal con datos del perfil
-        final examId = profile['exam_id'] ?? 1;
-        final examName = examId == 1 ? 'EXANI-II' : 'EXANI-I';
+        final activeExamId = profile['active_exam_id'] as int? ?? 1;
         final examDateStr = profile['exam_date'];
         final DateTime? examDate =
             examDateStr != null ? DateTime.tryParse(examDateStr) : null;
@@ -135,11 +112,24 @@ class _HomeRouter extends StatelessWidget {
                 .toList() ??
             [];
 
-        return ExaniHomeScreen(
-          examId: examId.toString(),
-          examName: examName,
-          examDate: examDate,
-          moduleIds: moduleIds,
+        // Get exam name from database
+        return FutureBuilder<Map<String, dynamic>?>(
+          future: sb.exams.select().eq('id', activeExamId).maybeSingle(),
+          builder: (context, examSnapshot) {
+            if (!examSnapshot.hasData) {
+              return const _SplashLoading();
+            }
+
+            final exam = examSnapshot.data;
+            final examName = exam?['name'] as String? ?? 'EXANI-II';
+
+            return ExaniHomeScreen(
+              examId: activeExamId,
+              examName: examName,
+              examDate: examDate,
+              moduleIds: moduleIds,
+            );
+          },
         );
       },
     );

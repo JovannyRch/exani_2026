@@ -26,6 +26,7 @@ class _ExamSelectionScreenState extends State<ExamSelectionScreen>
   late final Animation<Offset> _card2Slide;
 
   int? _selectedExamId;
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -140,10 +141,13 @@ class _ExamSelectionScreenState extends State<ExamSelectionScreen>
                       color: AppColors.primary,
                       reactivos: '168 reactivos',
                       isSelected: _selectedExamId == 1,
-                      onTap: () {
-                        SoundService().playTap();
-                        setState(() => _selectedExamId = 1);
-                      },
+                      onTap:
+                          _isLoading
+                              ? null
+                              : () {
+                                SoundService().playTap();
+                                setState(() => _selectedExamId = 1);
+                              },
                     ),
                   ),
                 ),
@@ -161,12 +165,15 @@ class _ExamSelectionScreenState extends State<ExamSelectionScreen>
                       description: '4 áreas · Inglés diagnóstico',
                       icon: Icons.menu_book_rounded,
                       color: AppColors.secondary,
-                      reactivos: '160 reactivos',
+                      reactivos: '112 reactivos',
                       isSelected: _selectedExamId == 2,
-                      onTap: () {
-                        SoundService().playTap();
-                        setState(() => _selectedExamId = 2);
-                      },
+                      onTap:
+                          _isLoading
+                              ? null
+                              : () {
+                                SoundService().playTap();
+                                setState(() => _selectedExamId = 2);
+                              },
                     ),
                   ),
                 ),
@@ -174,14 +181,31 @@ class _ExamSelectionScreenState extends State<ExamSelectionScreen>
                 const Spacer(flex: 3),
 
                 // CTA
-                DuoButton(
-                  text: 'Continuar',
-                  color: AppColors.primary,
-                  onPressed:
-                      _selectedExamId != null
-                          ? () => widget.onExamSelected(_selectedExamId!)
-                          : null,
-                ),
+                _isLoading
+                    ? const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 14),
+                      child: CircularProgressIndicator(
+                        color: AppColors.primary,
+                      ),
+                    )
+                    : DuoButton(
+                      text: 'Continuar',
+                      color: AppColors.primary,
+                      onPressed:
+                          _selectedExamId != null
+                              ? () async {
+                                setState(() => _isLoading = true);
+                                try {
+                                  widget.onExamSelected(_selectedExamId!);
+                                  // El callback guardará y el AuthGate navegará automáticamente
+                                } catch (e) {
+                                  if (mounted) {
+                                    setState(() => _isLoading = false);
+                                  }
+                                }
+                              }
+                              : null,
+                    ),
                 const SizedBox(height: 32),
               ],
             ),
@@ -203,7 +227,7 @@ class _ExamCard extends StatefulWidget {
   final Color color;
   final String reactivos;
   final bool isSelected;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   const _ExamCard({
     required this.examId,
@@ -214,7 +238,7 @@ class _ExamCard extends StatefulWidget {
     required this.color,
     required this.reactivos,
     required this.isSelected,
-    required this.onTap,
+    this.onTap,
   });
 
   @override
@@ -232,101 +256,109 @@ class _ExamCardState extends State<_ExamCard> {
             ? widget.color.withValues(alpha: 0.06)
             : AppColors.surface;
 
+    final isEnabled = widget.onTap != null;
+
     return GestureDetector(
-      onTapDown: (_) => setState(() => _isPressed = true),
-      onTapUp: (_) {
-        setState(() => _isPressed = false);
-        widget.onTap();
-      },
-      onTapCancel: () => setState(() => _isPressed = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        margin: EdgeInsets.only(top: _isPressed ? 2 : 0),
-        padding: EdgeInsets.only(bottom: _isPressed ? 0 : 2),
-        decoration: BoxDecoration(
-          color: AppColors.darken(widget.color, 0.18),
-          borderRadius: BorderRadius.circular(18),
-        ),
+      onTapDown: isEnabled ? (_) => setState(() => _isPressed = true) : null,
+      onTapUp:
+          isEnabled
+              ? (_) {
+                setState(() => _isPressed = false);
+                widget.onTap?.call();
+              }
+              : null,
+      onTapCancel: isEnabled ? () => setState(() => _isPressed = false) : null,
+      child: Opacity(
+        opacity: isEnabled ? 1.0 : 0.5,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.all(18),
+          duration: const Duration(milliseconds: 150),
+          margin: EdgeInsets.only(top: _isPressed ? 2 : 0),
+          padding: EdgeInsets.only(bottom: _isPressed ? 0 : 2),
           decoration: BoxDecoration(
-            color: bgColor,
+            color: AppColors.darken(widget.color, 0.18),
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: borderColor, width: 2),
           ),
-          child: Row(
-            children: [
-              // Icon
-              Container(
-                width: 54,
-                height: 54,
-                decoration: BoxDecoration(
-                  color: widget.color.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(14),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: bgColor,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: borderColor, width: 2),
+            ),
+            child: Row(
+              children: [
+                // Icon
+                Container(
+                  width: 54,
+                  height: 54,
+                  decoration: BoxDecoration(
+                    color: widget.color.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(widget.icon, color: widget.color, size: 28),
                 ),
-                child: Icon(widget.icon, color: widget.color, size: 28),
-              ),
-              const SizedBox(width: 16),
-              // Text
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                const SizedBox(width: 16),
+                // Text
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.title,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        widget.subtitle,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        widget.description,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textLight,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Check / Reactivos
+                Column(
                   children: [
-                    Text(
-                      widget.title,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      widget.subtitle,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      widget.description,
-                      style: TextStyle(
-                        fontSize: 12,
+                    if (widget.isSelected)
+                      Icon(
+                        Icons.check_circle_rounded,
+                        color: widget.color,
+                        size: 26,
+                      )
+                    else
+                      Icon(
+                        Icons.radio_button_unchecked_rounded,
                         color: AppColors.textLight,
+                        size: 26,
+                      ),
+                    const SizedBox(height: 6),
+                    Text(
+                      widget.reactivos,
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: AppColors.textLight,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
                 ),
-              ),
-              // Check / Reactivos
-              Column(
-                children: [
-                  if (widget.isSelected)
-                    Icon(
-                      Icons.check_circle_rounded,
-                      color: widget.color,
-                      size: 26,
-                    )
-                  else
-                    Icon(
-                      Icons.radio_button_unchecked_rounded,
-                      color: AppColors.textLight,
-                      size: 26,
-                    ),
-                  const SizedBox(height: 6),
-                  Text(
-                    widget.reactivos,
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: AppColors.textLight,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

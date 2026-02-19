@@ -318,7 +318,7 @@ class _AuthScreenState extends State<AuthScreen>
                         ),
 
                         // Forgot password
-                        if (_isLogin) ...[
+                        /* if (_isLogin) ...[
                           const SizedBox(height: 8),
                           Align(
                             alignment: Alignment.centerRight,
@@ -334,7 +334,7 @@ class _AuthScreenState extends State<AuthScreen>
                               ),
                             ),
                           ),
-                        ],
+                        ], */
                       ],
                     ),
                   ),

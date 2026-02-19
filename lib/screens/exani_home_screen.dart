@@ -9,16 +9,16 @@ import 'package:exani/services/database_service.dart';
 import 'package:exani/services/purchase_service.dart';
 import 'package:exani/services/sound_service.dart';
 import 'package:exani/services/supabase_service.dart';
-import 'package:exani/services/theme_service.dart';
 import 'package:exani/theme/app_theme.dart';
 import 'package:exani/widgets/ad_banner_widget.dart';
+import 'package:exani/widgets/app_drawer.dart';
 import 'package:exani/widgets/app_loader.dart';
 import 'package:exani/widgets/duo_button.dart';
 
 /// Pantalla 4 MVP — Home post-onboarding.
 /// Dashboard EXANI con:  stats, Next Best Session, cards de acción, leaderboard preview
 class ExaniHomeScreen extends StatefulWidget {
-  final String examId;
+  final int examId;
   final String examName;
   final DateTime? examDate;
   final List<String> moduleIds;
@@ -37,6 +37,8 @@ class ExaniHomeScreen extends StatefulWidget {
 
 class _ExaniHomeScreenState extends State<ExaniHomeScreen>
     with TickerProviderStateMixin {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
   late final List<AnimationController> _controllers;
   late final List<Animation<Offset>> _slideAnimations;
   late final List<Animation<double>> _fadeAnimations;
@@ -45,10 +47,14 @@ class _ExaniHomeScreenState extends State<ExaniHomeScreen>
   int _avgAccuracy = 0;
   int _streak = 0;
   String _weakAreaName = '';
+  late int _activeExamId;
+  late String _activeExamName;
 
   @override
   void initState() {
     super.initState();
+    _activeExamId = widget.examId;
+    _activeExamName = widget.examName;
     _loadStats();
 
     _controllers = List.generate(7, (index) {
@@ -94,10 +100,9 @@ class _ExaniHomeScreenState extends State<ExaniHomeScreen>
       // Get weakest area from Supabase user stats
       String? weakArea;
       try {
-        final examId = int.tryParse(widget.examId);
-        if (examId != null) {
-          weakArea = await SupabaseService().getWeakestAreaName(examId: examId);
-        }
+        weakArea = await SupabaseService().getWeakestAreaName(
+          examId: _activeExamId,
+        );
       } catch (e) {
         // Ignore if not logged in or no data yet
       }
@@ -113,13 +118,46 @@ class _ExaniHomeScreenState extends State<ExaniHomeScreen>
     } catch (_) {}
   }
 
+  /// Maneja el cambio de examen activo desde el drawer
+  Future<void> _onExamChanged(int newExamId) async {
+    // Cargar nombre del examen desde la base de datos
+    try {
+      final examData = await SupabaseService().exams
+          .select()
+          .eq('id', newExamId)
+          .maybeSingle();
+      
+      final examName = examData?['name'] as String? ?? 'EXANI';
+      
+      setState(() {
+        _activeExamId = newExamId;
+        _activeExamName = examName;
+      });
+    } catch (e) {
+      setState(() => _activeExamId = newExamId);
+    }
+    
+    await _loadStats();
+
+    // Opcional: Mostrar mensaje de confirmación
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Cambiado a $_activeExamName'),
+          duration: const Duration(seconds: 2),
+          backgroundColor: AppColors.primary,
+        ),
+      );
+    }
+  }
+
   /// Carga todas las preguntas disponibles para el examen desde Supabase
   Future<List<Question>> _loadAllQuestions() async {
     try {
-      final examId = int.tryParse(widget.examId) ?? 1;
-
       // Get all sections for this exam
-      final sectionsData = await SupabaseService().getSectionsHierarchy(examId);
+      final sectionsData = await SupabaseService().getSectionsHierarchy(
+        _activeExamId,
+      );
 
       // Collect all questions from all sections
       final allQuestions = <Question>[];
@@ -168,6 +206,8 @@ class _ExaniHomeScreenState extends State<ExaniHomeScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: _scaffoldKey,
+      drawer: AppDrawer(onExamChanged: _onExamChanged),
       body: SafeArea(
         child: Column(
           children: [
@@ -199,7 +239,9 @@ class _ExaniHomeScreenState extends State<ExaniHomeScreen>
                               () => Navigator.push(
                                 context,
                                 _slideRoute(
-                                  PracticeSetupScreen(examId: widget.examId),
+                                  PracticeSetupScreen(
+                                    examId: _activeExamId.toString(),
+                                  ),
                                 ),
                               ).then((_) => _loadStats()),
                         ),
@@ -218,8 +260,8 @@ class _ExaniHomeScreenState extends State<ExaniHomeScreen>
                               context,
                               _slideRoute(
                                 SimulationScreen(
-                                  examId: widget.examId,
-                                  examName: widget.examName,
+                                  examId: _activeExamId.toString(),
+                                  examName: _activeExamName,
                                 ),
                               ),
                             ).then((_) => _loadStats());
@@ -307,12 +349,34 @@ class _ExaniHomeScreenState extends State<ExaniHomeScreen>
 
     return Row(
       children: [
+        // Menu button
+        GestureDetector(
+          onTap: () {
+            SoundService().playTap();
+            _scaffoldKey.currentState?.openDrawer();
+          },
+          child: Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.cardBorder),
+            ),
+            child: Icon(
+              Icons.menu_rounded,
+              color: AppColors.textSecondary,
+              size: 24,
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        // Title
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                widget.examName,
+                _activeExamName,
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
@@ -344,31 +408,6 @@ class _ExaniHomeScreenState extends State<ExaniHomeScreen>
                 ),
               ],
             ],
-          ),
-        ),
-        // Theme toggle
-        GestureDetector(
-          onTap: () {
-            SoundService().playTap();
-            ThemeService().toggleTheme();
-          },
-          child: Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.cardBorder),
-            ),
-            child: Icon(
-              ThemeService().isDark
-                  ? Icons.light_mode_rounded
-                  : Icons.dark_mode_rounded,
-              color:
-                  ThemeService().isDark
-                      ? AppColors.orange
-                      : AppColors.textSecondary,
-              size: 22,
-            ),
           ),
         ),
       ],
@@ -490,7 +529,9 @@ class _ExaniHomeScreenState extends State<ExaniHomeScreen>
               // Navigate to practice setup for adaptive practice
               Navigator.push(
                 context,
-                _slideRoute(PracticeSetupScreen(examId: widget.examId)),
+                _slideRoute(
+                  PracticeSetupScreen(examId: _activeExamId.toString()),
+                ),
               ).then((_) => _loadStats());
             },
           ),
@@ -525,7 +566,7 @@ class _ExaniHomeScreenState extends State<ExaniHomeScreen>
         SoundService().playTap();
         Navigator.push(
           context,
-          _slideRoute(LeaderboardScreen(examId: widget.examId)),
+          _slideRoute(LeaderboardScreen(examId: _activeExamId.toString())),
         );
       },
       child: Container(

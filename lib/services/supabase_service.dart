@@ -158,19 +158,79 @@ class SupabaseService {
   }
 
   /// Guarda la selección de examen + fecha + módulos del onboarding.
+  /// Usa la función SQL que ahora soporta múltiples exámenes.
   Future<void> saveOnboardingData({
     required int examId,
     DateTime? examDate,
     List<int> moduleIds = const [],
   }) async {
-    await profiles
-        .update({
-          'exam_id': examId,
-          'exam_date': examDate?.toIso8601String().substring(0, 10),
-          'modules_json': moduleIds,
-          'onboarding_done': true,
-        })
-        .eq('id', userId);
+    await rpc(
+      'save_onboarding_data',
+      params: {
+        'user_id_param': userId,
+        'exam_id_param': examId,
+        'exam_date_param': examDate?.toIso8601String().substring(0, 10),
+        'modules_param': moduleIds,
+      },
+    );
+  }
+
+  // ─── Multi-Exam Management ──────────────────────────────────────────────
+
+  /// Agrega un examen a la lista de exámenes del usuario.
+  /// Si es el primero, se establece como activo automáticamente.
+  Future<void> addExamToUser(int examId) async {
+    await rpc(
+      'add_exam_to_user',
+      params: {'user_id_param': userId, 'exam_id_param': examId},
+    );
+  }
+
+  /// Remueve un examen de la lista del usuario.
+  /// Si era el activo, cambia automáticamente a otro disponible.
+  Future<void> removeExamFromUser(int examId) async {
+    await rpc(
+      'remove_exam_from_user',
+      params: {'user_id_param': userId, 'exam_id_param': examId},
+    );
+  }
+
+  /// Cambia el examen activo del usuario.
+  /// El examen debe estar en la lista de exámenes del usuario.
+  Future<void> switchActiveExam(int examId) async {
+    await rpc(
+      'switch_active_exam',
+      params: {'user_id_param': userId, 'exam_id_param': examId},
+    );
+  }
+
+  /// Obtiene el ID del examen activo actual.
+  Future<int?> getActiveExamId() async {
+    final profile = await getMyProfile();
+    return profile?['active_exam_id'] as int?;
+  }
+
+  /// Obtiene la lista de IDs de todos los exámenes del usuario.
+  Future<List<int>> getUserExamIds() async {
+    final profile = await getMyProfile();
+    final examIds = profile?['exam_ids'] as List?;
+    if (examIds == null) return [];
+    return examIds.map((e) => e as int).toList();
+  }
+
+  /// Obtiene información completa de todos los exámenes del usuario.
+  /// Retorna lista de Maps con datos de cada examen.
+  Future<List<Map<String, dynamic>>> getUserExams() async {
+    final examIds = await getUserExamIds();
+    if (examIds.isEmpty) return [];
+
+    final examsData = await exams
+        .select()
+        .inFilter('id', examIds)
+        .eq('is_active', true)
+        .order('id');
+
+    return List<Map<String, dynamic>>.from(examsData);
   }
 
   // ─── Content helpers ────────────────────────────────────────────────────
