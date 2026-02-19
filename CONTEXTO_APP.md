@@ -68,20 +68,21 @@ lib/
 
 ## 🔑 Funcionalidades Principales
 
-| Funcionalidad | Descripción |
-| --- | --- |
-| **Diagnóstico inicial** | Examen de 25-30 preguntas que identifica áreas débiles del usuario |
-| **Práctica dirigida** | Drill-down por sección → área → habilidad para práctica enfocada |
-| **Simulacros** | Examen de 168 preguntas con timer de 270 min (condiciones reales EXANI-II) |
-| **Estadísticas** | Tracking de precisión por área, habilidad y pregunta |
-| **Leaderboard** | Tabla de posiciones global con usuarios reales |
-| **Guía de estudio** | Visualización de todas las preguntas disponibles |
+| Funcionalidad           | Descripción                                                                |
+| ----------------------- | -------------------------------------------------------------------------- |
+| **Diagnóstico inicial** | Examen de 25-30 preguntas que identifica áreas débiles del usuario         |
+| **Práctica dirigida**   | Drill-down por sección → área → habilidad para práctica enfocada           |
+| **Simulacros**          | Examen de 168 preguntas con timer de 270 min (condiciones reales EXANI-II) |
+| **Estadísticas**        | Tracking de precisión por área, habilidad y pregunta                       |
+| **Leaderboard**         | Tabla de posiciones global con usuarios reales                             |
+| **Guía de estudio**     | Visualización de todas las preguntas disponibles                           |
 
 ---
 
 ## 🗄️ Base de Datos (Supabase PostgreSQL)
 
 ### Jerarquía de Contenido
+
 ```
 exams (EXANI-I, EXANI-II, etc.)
   └── exam_configs (reglas del examen: 168 preguntas, 270 min)
@@ -92,14 +93,16 @@ exams (EXANI-I, EXANI-II, etc.)
 ```
 
 ### Tablas de Usuario
+
 - `user_profiles` - Perfil extendido del usuario
 - `user_sessions` - Historial de prácticas/simulacros
 - `user_area_stats` - Precisión por área
-- `user_skill_stats` - Precisión por habilidad  
+- `user_skill_stats` - Precisión por habilidad
 - `user_question_stats` - Performance por pregunta
 - `leaderboard` - Posiciones globales
 
 ### Estado Actual
+
 - ✅ 2 exámenes configurados
 - ✅ 13 secciones definidas
 - ✅ 39 habilidades creadas
@@ -111,17 +114,18 @@ exams (EXANI-I, EXANI-II, etc.)
 
 Motor reutilizable para tres modos de estudio:
 
-| Modo | Descripción | Preguntas | Tiempo |
-| --- | --- | --- | --- |
-| **Diagnostic** | Evaluación inicial para identificar debilidades | 25-30 | Sin límite |
-| **Practice** | Práctica enfocada en sección/área/habilidad | Variable | Sin límite |
-| **Simulation** | Examen completo con condiciones reales | 168 | 270 min |
+| Modo           | Descripción                                     | Preguntas | Tiempo     |
+| -------------- | ----------------------------------------------- | --------- | ---------- |
+| **Diagnostic** | Evaluación inicial para identificar debilidades | 25-30     | Sin límite |
+| **Practice**   | Práctica enfocada en sección/área/habilidad     | Variable  | Sin límite |
+| **Simulation** | Examen completo con condiciones reales          | 168       | 270 min    |
 
 **Características:**
+
 - Selección inteligente de preguntas (evita repetición)
 - Refresh automático de estadísticas al completar
 - Soporte para trackeo de skillId en cada pregunta
-AdMob:** Banners en screens principales, intersticiales estratégicos
+  AdMob:\*\* Banners en screens principales, intersticiales estratégicos
 - **Pro Version:** In-App Purchase para remover ads y desbloquear features Premium
 
 ---
@@ -129,6 +133,7 @@ AdMob:** Banners en screens principales, intersticiales estratégicos
 ## ✅ Estado Actual de Integración
 
 **Completado:**
+
 - ✅ Autenticación Supabase con Auth Gate
 - ✅ Onboarding flow con persistencia
 - ✅ Jerarquía completa en BD (exams→sections→areas→skills→questions)
@@ -141,6 +146,7 @@ AdMob:** Banners en screens principales, intersticiales estratégicos
 - ✅ Question model con skillId para tracking
 
 **Pendiente:**
+
 - ⚠️ Seed de base de datos con preguntas reales EXANI-II
 - ⚠️ Implementar SessionEngine UI screen (reemplazar ExamScreen actual)
 - ⚠️ Invalidación de caché al agregar/modificar preguntas
@@ -149,15 +155,15 @@ AdMob:** Banners en screens principales, intersticiales estratégicos
 
 ## 📦 Dependencias Principales
 
-| Paquete | Uso |
-| --- | --- |
-| `supabase_flutter` | Backend + Auth + Database |
-| `riverpod` / `flutter_bloc` | State management |
-| `go_router` | Navegación |
-| `google_mobile_ads` | Monetización |
-| `in_app_purchase` | Pro version |
-| `shared_preferences` | Persistencia local |
-| `flutter_sound` | Efectos de sonido
+| Paquete                     | Uso                       |
+| --------------------------- | ------------------------- |
+| `supabase_flutter`          | Backend + Auth + Database |
+| `riverpod` / `flutter_bloc` | State management          |
+| `go_router`                 | Navegación                |
+| `google_mobile_ads`         | Monetización              |
+| `in_app_purchase`           | Pro version               |
+| `shared_preferences`        | Persistencia local        |
+| `flutter_sound`             | Efectos de sonido         |
 
 - **BannerAd:** Se muestra en HomeScreen, ExamScreen y GuideScreen
 - **InterstitialAd:** Se muestra 3 segundos después de abrir PdfViewerScreen
