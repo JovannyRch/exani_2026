@@ -136,10 +136,10 @@ class _ExamSelectionScreenState extends State<ExamSelectionScreen>
                       examId: 1,
                       title: 'EXANI-II',
                       subtitle: 'Ingreso a universidad',
-                      description: '3 áreas transversales · 2 módulos · Inglés',
+                      description: '',
                       icon: Icons.account_balance_rounded,
                       color: AppColors.primary,
-                      reactivos: '168 reactivos',
+                      reactivos: '',
                       isSelected: _selectedExamId == 1,
                       onTap:
                           _isLoading
@@ -162,10 +162,10 @@ class _ExamSelectionScreenState extends State<ExamSelectionScreen>
                       examId: 2,
                       title: 'EXANI-I',
                       subtitle: 'Ingreso a preparatoria',
-                      description: '4 áreas · Inglés diagnóstico',
+                      description: '',
                       icon: Icons.menu_book_rounded,
                       color: AppColors.secondary,
-                      reactivos: '112 reactivos',
+                      reactivos: '',
                       isSelected: _selectedExamId == 2,
                       onTap:
                           _isLoading

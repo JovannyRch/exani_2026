@@ -173,8 +173,12 @@ class _SimulationScreenState extends State<SimulationScreen>
           context,
           PageRouteBuilder(
             pageBuilder:
-                (context, animation, secondaryAnimation) =>
-                    ExamScreen(allQuestions: simulationQuestions),
+                (context, animation, secondaryAnimation) => ExamScreen(
+                  allQuestions: simulationQuestions,
+                  examId: examId,
+                  totalQuestions: _totalQuestions,
+                  durationMinutes: _timeLimitMinutes,
+                ),
             transitionsBuilder: (
               context,
               animation,

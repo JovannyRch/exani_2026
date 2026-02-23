@@ -26,8 +26,17 @@ class QuestionWithOptions {
 
 class ExamScreen extends StatefulWidget {
   final List<Question> allQuestions;
+  final int examId;
+  final int totalQuestions;
+  final int durationMinutes;
 
-  const ExamScreen({super.key, required this.allQuestions});
+  const ExamScreen({
+    super.key,
+    required this.allQuestions,
+    required this.examId,
+    required this.totalQuestions,
+    required this.durationMinutes,
+  });
 
   @override
   State<ExamScreen> createState() => _ExamScreenState();
@@ -39,14 +48,20 @@ class _ExamScreenState extends State<ExamScreen> {
   int currentIndex = 0;
 
   late Timer timer;
-  int secondsRemaining = EXAM_DURATION_MINUTES * 60;
+  late int secondsRemaining;
+  late int passingScore;
 
   @override
   void initState() {
     super.initState();
 
+    // Inicializar valores dinámicos del examen
+    secondsRemaining = widget.durationMinutes * 60;
+    passingScore =
+        (widget.totalQuestions * EXAM_PASSING_PERCENTAGE / 100).ceil();
+
     List<Question> qs = List.from(widget.allQuestions)..shuffle();
-    qs = qs.take(EXAM_TOTAL_QUESTIONS).toList();
+    qs = qs.take(widget.totalQuestions).toList();
 
     examQuestions =
         qs
@@ -88,7 +103,7 @@ class _ExamScreenState extends State<ExamScreen> {
       }
     }
 
-    final int timeSpent = (EXAM_DURATION_MINUTES * 60) - secondsRemaining;
+    final int timeSpent = (widget.durationMinutes * 60) - secondsRemaining;
 
     Navigator.pushReplacement(
       context,
@@ -100,6 +115,7 @@ class _ExamScreenState extends State<ExamScreen> {
               timeSpentSeconds: timeSpent,
               examQuestions: examQuestions,
               answers: Map.from(answers),
+              passingScore: passingScore,
             ),
         transitionsBuilder: (_, animation, __, child) {
           return FadeTransition(opacity: animation, child: child);
@@ -505,6 +521,7 @@ class ResultsScreen extends StatefulWidget {
   final int timeSpentSeconds;
   final List<QuestionWithOptions> examQuestions;
   final Map<int, int> answers;
+  final int passingScore;
 
   const ResultsScreen({
     super.key,
@@ -513,6 +530,7 @@ class ResultsScreen extends StatefulWidget {
     required this.timeSpentSeconds,
     required this.examQuestions,
     required this.answers,
+    required this.passingScore,
   });
 
   @override
@@ -530,7 +548,7 @@ class _ResultsScreenState extends State<ResultsScreen>
   void initState() {
     super.initState();
 
-    final bool passed = widget.totalCorrect >= EXAM_PASSING_SCORE;
+    final bool passed = widget.totalCorrect >= widget.passingScore;
 
     _scoreController = AnimationController(
       vsync: this,
@@ -594,7 +612,7 @@ class _ResultsScreenState extends State<ResultsScreen>
       final result = ExamResult(
         correctAnswers: widget.totalCorrect,
         totalQuestions: widget.totalQuestions,
-        passed: widget.totalCorrect >= EXAM_PASSING_SCORE,
+        passed: widget.totalCorrect >= widget.passingScore,
         timeSpentSeconds: widget.timeSpentSeconds,
         date: DateTime.now(),
       );
@@ -628,7 +646,7 @@ class _ResultsScreenState extends State<ResultsScreen>
       if (hasRequestedReview) return;
 
       // Only show if user passed the exam
-      final bool passed = widget.totalCorrect >= EXAM_PASSING_SCORE;
+      final bool passed = widget.totalCorrect >= widget.passingScore;
       if (!passed) return;
 
       // Check if user has completed 3+ exams
@@ -656,7 +674,7 @@ class _ResultsScreenState extends State<ResultsScreen>
 
   @override
   Widget build(BuildContext context) {
-    final bool passed = widget.totalCorrect >= EXAM_PASSING_SCORE;
+    final bool passed = widget.totalCorrect >= widget.passingScore;
     final double percentage = widget.totalCorrect / widget.totalQuestions;
     final Color accentColor = passed ? AppColors.primary : AppColors.red;
 

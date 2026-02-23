@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 class AdMobService {
-  static const bool _testAds = true; // TODO: Cambiar a false en producción
+  static const bool _testAds = false; // TODO: Cambiar a false en producción
 
   // IDs de prueba de AdMob
   static const String _testBannerAdUnitId =
