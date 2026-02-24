@@ -214,7 +214,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
             ),
             const SizedBox(height: 6),
             Text(
-              'Completa al menos 20 reactivos para aparecer.',
+              'Completa sesiones de práctica para aparecer en el ranking semanal.',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
             ),
@@ -297,7 +297,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
               borderRadius: BorderRadius.circular(10),
             ),
             child: Text(
-              '${pos.score.toStringAsFixed(0)} pts',
+              '${pos.totalPoints} pts',
               style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
@@ -414,9 +414,9 @@ class _LeaderboardRow extends StatelessWidget {
             ),
           ),
 
-          // Score
+          // Points
           Text(
-            entry.score.toStringAsFixed(0),
+            '${entry.totalPoints}',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,

@@ -83,6 +83,15 @@ class SupabaseSessionRepository implements SessionRepository {
           'ended_at': DateTime.now().toIso8601String(),
         })
         .eq('id', sessionId);
+
+    // Calculate and save points for this session
+    await _sb.client.rpc(
+      'calculate_session_points',
+      params: {'p_session_id': sessionId},
+    );
+
+    // Update weekly leaderboard with new session data
+    await _sb.client.rpc('compute_weekly_leaderboard');
   }
 
   @override

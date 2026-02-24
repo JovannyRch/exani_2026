@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:exani/theme/app_theme.dart';
+import 'package:exani/widgets/latex_text.dart';
 
 /// Widget reutilizable para renderizar imágenes de contenido (preguntas, opciones, explicaciones).
 /// Soporta tanto assets locales como URLs remotas.
@@ -177,7 +178,7 @@ class OptionContent extends StatelessWidget {
     final hasImage = imagePath != null && imagePath!.isNotEmpty;
 
     if (!hasImage) {
-      return Text(
+      return LatexText(
         text.replaceAll('[br]', '\n'),
         style:
             textStyle ??
@@ -197,7 +198,7 @@ class OptionContent extends StatelessWidget {
         ),
         if (text.isNotEmpty) ...[
           const SizedBox(height: 8),
-          Text(
+          LatexText(
             text.replaceAll('[br]', '\n'),
             style:
                 textStyle ??

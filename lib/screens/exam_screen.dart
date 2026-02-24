@@ -5,11 +5,14 @@ import 'package:exani/models/exam_result.dart';
 import 'package:exani/screens/review_screen.dart';
 import 'package:exani/services/admob_service.dart';
 import 'package:exani/services/database_service.dart';
+import 'package:exani/services/notification_service.dart';
 import 'package:exani/services/purchase_service.dart';
 import 'package:exani/services/sound_service.dart';
+import 'package:exani/services/supabase_service.dart';
 import 'package:exani/theme/app_theme.dart';
 import 'package:exani/widgets/ad_banner_widget.dart';
 import 'package:exani/widgets/duo_button.dart';
+import 'package:exani/widgets/latex_text.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:share_plus/share_plus.dart';
@@ -47,15 +50,24 @@ class _ExamScreenState extends State<ExamScreen> {
   Map<int, int> answers = {};
   int currentIndex = 0;
 
-  late Timer timer;
+  Timer? timer;
   late int secondsRemaining;
   late int passingScore;
+  late bool hasTimeLimit;
+
+  // Cronómetro para rastrear tiempo real transcurrido
+  late DateTime startTime;
+  int elapsedSeconds = 0;
 
   @override
   void initState() {
     super.initState();
 
+    // Registrar el inicio del examen
+    startTime = DateTime.now();
+
     // Inicializar valores dinámicos del examen
+    hasTimeLimit = widget.durationMinutes > 0;
     secondsRemaining = widget.durationMinutes * 60;
     passingScore =
         (widget.totalQuestions * EXAM_PASSING_PERCENTAGE / 100).ceil();
@@ -73,18 +85,21 @@ class _ExamScreenState extends State<ExamScreen> {
             )
             .toList();
 
-    timer = Timer.periodic(const Duration(seconds: 1), (t) {
-      if (secondsRemaining == 0) {
-        _finishExam();
-      } else {
-        setState(() => secondsRemaining--);
-      }
-    });
+    // Solo iniciar timer si hay límite de tiempo
+    if (hasTimeLimit) {
+      timer = Timer.periodic(const Duration(seconds: 1), (t) {
+        if (secondsRemaining == 0) {
+          _finishExam();
+        } else {
+          setState(() => secondsRemaining--);
+        }
+      });
+    }
   }
 
   @override
   void dispose() {
-    timer.cancel();
+    timer?.cancel();
     super.dispose();
   }
 
@@ -95,7 +110,12 @@ class _ExamScreenState extends State<ExamScreen> {
   }
 
   void _finishExam() {
-    timer.cancel();
+    timer?.cancel();
+
+    // Calcular tiempo real transcurrido
+    final endTime = DateTime.now();
+    final timeSpent = endTime.difference(startTime).inSeconds;
+
     int totalCorrect = 0;
     for (var q in examQuestions) {
       if (answers[q.question.id] == q.question.correctOptionId) {
@@ -103,7 +123,15 @@ class _ExamScreenState extends State<ExamScreen> {
       }
     }
 
-    final int timeSpent = (widget.durationMinutes * 60) - secondsRemaining;
+    // Calcular puntos ganados
+    final int pointsEarned = _calculatePoints(
+      totalQuestions: examQuestions.length,
+      correctAnswers: totalCorrect,
+      avgTimeSeconds:
+          examQuestions.isNotEmpty
+              ? (timeSpent / examQuestions.length).round()
+              : 0,
+    );
 
     Navigator.pushReplacement(
       context,
@@ -116,6 +144,8 @@ class _ExamScreenState extends State<ExamScreen> {
               examQuestions: examQuestions,
               answers: Map.from(answers),
               passingScore: passingScore,
+              pointsEarned: pointsEarned,
+              examId: widget.examId,
             ),
         transitionsBuilder: (_, animation, __, child) {
           return FadeTransition(opacity: animation, child: child);
@@ -123,6 +153,33 @@ class _ExamScreenState extends State<ExamScreen> {
         transitionDuration: const Duration(milliseconds: 400),
       ),
     );
+  }
+
+  /// Calcula puntos según fórmula: base_points × accuracy × speed_bonus
+  int _calculatePoints({
+    required int totalQuestions,
+    required int correctAnswers,
+    required int avgTimeSeconds,
+  }) {
+    if (totalQuestions == 0) return 0;
+
+    // Accuracy (0-1)
+    final accuracy = correctAnswers / totalQuestions;
+
+    // Base points: numQuestions × 10 × accuracy
+    final basePoints = totalQuestions * 10 * accuracy;
+
+    // Speed multiplier
+    double speedBonus = 0;
+    if (avgTimeSeconds < 30) {
+      speedBonus = basePoints * 0.20; // +20%
+    } else if (avgTimeSeconds < 45) {
+      speedBonus = basePoints * 0.10; // +10%
+    } else if (avgTimeSeconds < 60) {
+      speedBonus = basePoints * 0.05; // +5%
+    }
+
+    return (basePoints + speedBonus).round();
   }
 
   String _formatTime(int seconds) {
@@ -163,7 +220,7 @@ class _ExamScreenState extends State<ExamScreen> {
               ),
               TextButton(
                 onPressed: () {
-                  timer.cancel();
+                  timer?.cancel();
                   Navigator.pop(ctx);
                   Navigator.pop(context);
                 },
@@ -216,36 +273,37 @@ class _ExamScreenState extends State<ExamScreen> {
           ],
         ),
         actions: [
-          Container(
-            margin: const EdgeInsets.only(right: 12),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color:
-                  isTimeLow
-                      ? AppColors.red.withValues(alpha: 0.12)
-                      : AppColors.orange.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.timer_outlined,
-                  size: 18,
-                  color: isTimeLow ? AppColors.red : AppColors.orange,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  _formatTime(secondsRemaining),
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
+          if (hasTimeLimit)
+            Container(
+              margin: const EdgeInsets.only(right: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color:
+                    isTimeLow
+                        ? AppColors.red.withValues(alpha: 0.12)
+                        : AppColors.orange.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.timer_outlined,
+                    size: 18,
                     color: isTimeLow ? AppColors.red : AppColors.orange,
                   ),
-                ),
-              ],
+                  const SizedBox(width: 4),
+                  Text(
+                    _formatTime(secondsRemaining),
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: isTimeLow ? AppColors.red : AppColors.orange,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
         ],
       ),
       body: Column(
@@ -301,7 +359,7 @@ class _ExamScreenState extends State<ExamScreen> {
                       ),
                     ),
                     const SizedBox(height: 14),
-                    Text(
+                    LatexText(
                       currentQ.text,
                       style: TextStyle(
                         fontSize: 21,
@@ -522,6 +580,8 @@ class ResultsScreen extends StatefulWidget {
   final List<QuestionWithOptions> examQuestions;
   final Map<int, int> answers;
   final int passingScore;
+  final int pointsEarned;
+  final int examId;
 
   const ResultsScreen({
     super.key,
@@ -531,6 +591,8 @@ class ResultsScreen extends StatefulWidget {
     required this.examQuestions,
     required this.answers,
     required this.passingScore,
+    required this.examId,
+    this.pointsEarned = 0,
   });
 
   @override
@@ -539,6 +601,8 @@ class ResultsScreen extends StatefulWidget {
 
 class _ResultsScreenState extends State<ResultsScreen>
     with TickerProviderStateMixin {
+  static const String _notificationPromptSeenKey = 'notification_prompt_seen';
+
   late AnimationController _scoreController;
   late AnimationController _bounceController;
   late Animation<double> _bounceAnimation;
@@ -609,6 +673,7 @@ class _ResultsScreenState extends State<ResultsScreen>
 
   Future<void> _saveResult() async {
     try {
+      // 1. Guardar en SQLite local (para compatibilidad)
       final result = ExamResult(
         correctAnswers: widget.totalCorrect,
         totalQuestions: widget.totalQuestions,
@@ -617,6 +682,9 @@ class _ResultsScreenState extends State<ResultsScreen>
         date: DateTime.now(),
       );
       await DatabaseService().insertExamResult(result);
+
+      // 2. Guardar en Supabase para el ranking
+      await _saveToSupabase();
 
       // Auto-save failed questions to favorites
       final failedIds = <int>[];
@@ -630,10 +698,115 @@ class _ResultsScreenState extends State<ResultsScreen>
         await DatabaseService().saveFailedQuestions(failedIds);
       }
 
+      // Check and show notification prompt on first completed session
+      await _checkAndShowNotificationPrompt();
+
       // Check and show review prompt if conditions are met
       await _checkAndShowReviewPrompt();
     } catch (e) {
+      debugPrint('Error saving result: $e');
       // Fail silently — don't interrupt the results view
+    }
+  }
+
+  Future<void> _saveToSupabase() async {
+    try {
+      final sb = SupabaseService();
+
+      // Si el usuario no está logueado, crear sesión anónima automáticamente
+      if (!sb.isLoggedIn) {
+        debugPrint('🔑 Usuario no logueado, creando sesión anónima...');
+        try {
+          await sb.signInAnonymously();
+          debugPrint('✅ Sesión anónima creada');
+        } catch (e) {
+          debugPrint('❌ Error creando sesión anónima: $e');
+          return;
+        }
+      }
+
+      debugPrint('💾 Guardando sesión en Supabase...');
+      debugPrint('   User ID: ${sb.userId}');
+      debugPrint('   Exam ID: ${widget.examId}');
+      debugPrint('   Total questions: ${widget.totalQuestions}');
+      debugPrint('   Correct: ${widget.totalCorrect}');
+      debugPrint('   Time: ${widget.timeSpentSeconds}s');
+
+      // Crear la sesión
+      final sessionData =
+          await sb.sessions
+              .insert({
+                'user_id': sb.userId,
+                'exam_id': widget.examId,
+                'mode': 'quickQuiz', // o el modo correspondiente
+                'total_questions': widget.totalQuestions,
+                'correct_answers': widget.totalCorrect,
+                'accuracy': (widget.totalCorrect / widget.totalQuestions * 100),
+                'total_time_ms': widget.timeSpentSeconds * 1000,
+                'is_completed': true,
+                'ended_at': DateTime.now().toIso8601String(),
+              })
+              .select('id')
+              .single();
+
+      final sessionId = sessionData['id'] as int;
+      debugPrint('   Session ID: $sessionId');
+
+      // Guardar las preguntas con sus respuestas
+      final avgTimeMs =
+          (widget.timeSpentSeconds * 1000 / widget.totalQuestions).round();
+      final sessionQuestions = <Map<String, dynamic>>[];
+
+      int order = 0;
+      for (var qwo in widget.examQuestions) {
+        final questionId = qwo.question.id;
+        final selectedOptionId = widget.answers[questionId];
+        final isCorrect = selectedOptionId == qwo.question.correctOptionId;
+
+        // Determinar la letra de la opción seleccionada (a, b, c, d)
+        String? chosenKey;
+        if (selectedOptionId != null) {
+          final optionIndex = qwo.options.indexWhere(
+            (o) => o.id == selectedOptionId,
+          );
+          if (optionIndex != -1) {
+            chosenKey = String.fromCharCode(97 + optionIndex); // 97 = 'a'
+          }
+        }
+
+        sessionQuestions.add({
+          'session_id': sessionId,
+          'question_id': questionId,
+          'question_order': order++,
+          'chosen_key': chosenKey,
+          'is_correct': selectedOptionId != null ? isCorrect : null,
+          'time_ms': avgTimeMs, // Tiempo promedio por pregunta
+          'answered_at': DateTime.now().toIso8601String(),
+        });
+      }
+
+      if (sessionQuestions.isNotEmpty) {
+        await sb.sessionQuestions.insert(sessionQuestions);
+        debugPrint('   ✓ ${sessionQuestions.length} preguntas guardadas');
+      }
+
+      // Calcular puntos y actualizar leaderboard
+      debugPrint('📊 Calculando puntos...');
+      final pointsResult = await sb.client.rpc(
+        'calculate_session_points',
+        params: {'p_session_id': sessionId},
+      );
+      debugPrint('   ✓ Puntos calculados: $pointsResult');
+
+      debugPrint('🏆 Actualizando leaderboard...');
+      await sb.client.rpc('compute_weekly_leaderboard');
+      debugPrint('   ✓ Leaderboard actualizado');
+
+      debugPrint('✅ Session saved to Supabase: $sessionId');
+    } catch (e, stackTrace) {
+      debugPrint('❌ Error saving to Supabase: $e');
+      debugPrint('Stack trace: $stackTrace');
+      // No interrumpir la experiencia del usuario
     }
   }
 
@@ -651,7 +824,8 @@ class _ResultsScreenState extends State<ResultsScreen>
 
       // Check if user has completed 3+ exams
       final stats = await DatabaseService().getAllStats();
-      if (stats.length < 3) return;
+      final totalExams = stats['totalExams'] as int? ?? 0;
+      if (totalExams < 3) return;
 
       // All conditions met - request review
       final inAppReview = InAppReview.instance;
@@ -667,6 +841,78 @@ class _ResultsScreenState extends State<ResultsScreen>
         await inAppReview.openStoreListing();
         await prefs.setBool('has_requested_review', true);
       }
+    } catch (e) {
+      // Fail silently — don't interrupt the results view
+    }
+  }
+
+  Future<void> _checkAndShowNotificationPrompt() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final hasShownPrompt = prefs.getBool(_notificationPromptSeenKey) ?? false;
+      if (hasShownPrompt) return;
+
+      final totalExams = await DatabaseService().getTotalExams();
+      if (totalExams != 1) return;
+
+      final notificationService = NotificationService();
+      if (await notificationService.isReminderEnabled()) {
+        await prefs.setBool(_notificationPromptSeenKey, true);
+        return;
+      }
+
+      if (!mounted) return;
+
+      final enableReminder = await showDialog<bool>(
+        context: context,
+        builder:
+            (ctx) => AlertDialog(
+              title: const Text('Recordatorio de estudio'),
+              content: const Text(
+                '¿Quieres que te mandemos un recordatorio diario para seguir tu racha?',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: const Text('Ahora no'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  child: const Text('Activar'),
+                ),
+              ],
+            ),
+      );
+
+      await prefs.setBool(_notificationPromptSeenKey, true);
+
+      if (enableReminder != true) return;
+
+      final granted = await notificationService.requestPermissions();
+      if (!granted) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Permiso de notificaciones no concedido'),
+            ),
+          );
+        }
+        return;
+      }
+
+      final hour = await notificationService.getReminderHour();
+      final minute = await notificationService.getReminderMinute();
+      await notificationService.scheduleDailyReminder(hour, minute);
+
+      if (!mounted) return;
+      final minuteText = minute.toString().padLeft(2, '0');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Recordatorio activo todos los días a las ${hour.toString().padLeft(2, '0')}:$minuteText',
+          ),
+        ),
+      );
     } catch (e) {
       // Fail silently — don't interrupt the results view
     }
@@ -770,6 +1016,55 @@ class _ResultsScreenState extends State<ResultsScreen>
                       ),
                       textAlign: TextAlign.center,
                     ),
+                    if (widget.pointsEarned > 0) ...[
+                      const SizedBox(height: 24),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: AppColors.primary.withOpacity(0.3),
+                            width: 2,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.stars_rounded,
+                              color: AppColors.primary,
+                              size: 28,
+                            ),
+                            const SizedBox(width: 12),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Puntos Ganados',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.textSecondary,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                Text(
+                                  '+${widget.pointsEarned}',
+                                  style: TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),

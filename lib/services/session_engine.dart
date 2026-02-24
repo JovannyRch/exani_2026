@@ -325,6 +325,8 @@ class SessionEngine extends ChangeNotifier {
         return _selectPractice(config);
       case SessionMode.simulation:
         return _selectSimulation(config);
+      case SessionMode.quickQuiz:
+        return _selectQuickQuiz(config);
     }
   }
 
@@ -380,6 +382,22 @@ class SessionEngine extends ChangeNotifier {
       sectionQuotas: quotas,
       questionsBySection: bySection,
     );
+  }
+
+  /// Quick Quiz: selección aleatoria simple del área/skill especificado o del examen completo
+  Future<List<int>> _selectQuickQuiz(SessionConfig config) async {
+    final availableIds = await _repository.getAvailableQuestionIds(
+      examId: config.examId,
+      sectionId: config.sectionId,
+      areaId: config.areaId,
+      skillId: config.skillId,
+    );
+
+    if (availableIds.isEmpty) return [];
+
+    // Selección aleatoria simple (no adaptativa)
+    availableIds.shuffle();
+    return availableIds.take(config.numQuestions).toList();
   }
 
   /// Marca la sesión como completada

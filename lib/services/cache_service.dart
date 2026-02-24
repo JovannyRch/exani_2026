@@ -87,6 +87,28 @@ class CacheService {
     debugPrint('🗑️ Cache CLEAR: expired entries');
   }
 
+  /// Clear all cache entries related to questions
+  void clearQuestionsCache() {
+    _cache.removeWhere((key, entry) => key.contains('questions_'));
+    debugPrint('🗑️ Cache CLEAR: all question entries');
+  }
+
+  /// Clear cache for a specific skill, area, or section
+  void clearQuestionsCacheFor({int? skillId, int? areaId, int? sectionId}) {
+    if (skillId != null) {
+      remove(CacheKeys.questionsForSkill(skillId));
+    }
+    if (areaId != null) {
+      remove(CacheKeys.questionsForArea(areaId));
+    }
+    if (sectionId != null) {
+      remove(CacheKeys.questionsForSection(sectionId));
+    }
+    debugPrint(
+      '🗑️ Cache CLEAR: questions for skill=$skillId, area=$areaId, section=$sectionId',
+    );
+  }
+
   // ─── Persistent cache (SharedPreferences) ───────────────────────────────
 
   /// Save to persistent storage (JSON serializable data only)

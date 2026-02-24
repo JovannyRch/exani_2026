@@ -6,6 +6,7 @@ import 'package:exani/services/sound_service.dart';
 import 'package:exani/theme/app_theme.dart';
 import 'package:exani/widgets/content_image.dart';
 import 'package:exani/widgets/duo_button.dart';
+import 'package:exani/widgets/latex_text.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
@@ -408,7 +409,7 @@ class _ReviewCardState extends State<_ReviewCard> {
 
                     // Question text
                     Expanded(
-                      child: Text(
+                      child: LatexText(
                         item.question.text,
                         style: TextStyle(
                           fontSize: 14,
@@ -697,7 +698,7 @@ class _ReviewCardState extends State<_ReviewCard> {
                           ),
                         ),
                         const SizedBox(height: 4),
-                        Text(
+                        LatexText(
                           item.question.explanation!,
                           style: TextStyle(
                             fontSize: 13,

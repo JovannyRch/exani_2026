@@ -9,12 +9,14 @@ library;
 enum SessionMode {
   diagnostic('Diagnóstico'),
   practice('Práctica'),
-  simulation('Simulacro');
+  simulation('Simulacro'),
+  quickQuiz('Quiz Rápido');
 
   final String label;
   const SessionMode(this.label);
 
-  String get code => name; // 'diagnostic', 'practice', 'simulation'
+  String get code =>
+      name; // 'diagnostic', 'practice', 'simulation', 'quickQuiz'
 }
 
 /// Estado de la sesión
@@ -133,6 +135,23 @@ class SessionConfig {
     timeLimitMinutes: timeLimitMinutes,
     moduleIds: moduleIds,
   );
+
+  factory SessionConfig.quickQuiz({
+    required int examId,
+    int? sectionId,
+    int? areaId,
+    int? skillId,
+    int numQuestions = 10,
+    int? timeLimitMinutes,
+  }) => SessionConfig(
+    examId: examId,
+    mode: SessionMode.quickQuiz,
+    sectionId: sectionId,
+    areaId: areaId,
+    skillId: skillId,
+    numQuestions: numQuestions,
+    timeLimitMinutes: timeLimitMinutes,
+  );
 }
 
 // ─── Session ────────────────────────────────────────────────────────────────
@@ -172,8 +191,7 @@ class Session {
   double get accuracy =>
       answeredCount > 0 ? (correctCount / answeredCount) * 100 : 0;
 
-  int get totalTimeMs =>
-      questions.fold(0, (sum, q) => sum + (q.timeMs ?? 0));
+  int get totalTimeMs => questions.fold(0, (sum, q) => sum + (q.timeMs ?? 0));
 
   /// Progreso 0.0 - 1.0
   double get progress =>

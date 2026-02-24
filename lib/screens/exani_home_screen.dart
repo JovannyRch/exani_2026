@@ -5,6 +5,7 @@ import 'package:exani/screens/leaderboard_screen.dart';
 import 'package:exani/screens/pdf_viewer_screen.dart';
 import 'package:exani/screens/practice_setup_screen.dart';
 import 'package:exani/screens/pro_screen.dart';
+import 'package:exani/screens/quiz_setup_screen.dart';
 import 'package:exani/screens/simulation_screen.dart';
 import 'package:exani/services/database_service.dart';
 import 'package:exani/services/purchase_service.dart';
@@ -58,7 +59,7 @@ class _ExaniHomeScreenState extends State<ExaniHomeScreen>
     _activeExamName = widget.examName;
     _loadStats();
 
-    _controllers = List.generate(8, (index) {
+    _controllers = List.generate(9, (index) {
       return AnimationController(
         vsync: this,
         duration: Duration(milliseconds: 500 + (index * 150)),
@@ -228,10 +229,18 @@ class _ExaniHomeScreenState extends State<ExaniHomeScreen>
                       const SizedBox(height: 20),
                       _buildAnimatedWidget(0, _buildStatsRow()),
                       const SizedBox(height: 20),
-                      _buildAnimatedWidget(1, _buildNextSessionCTA()),
-                      const SizedBox(height: 16),
+
+                      // ✨ QUICK QUIZ HERO - Destacado arriba de todo
+                      _buildAnimatedWidget(1, _buildQuickQuizHero()),
+                      const SizedBox(height: 20),
+
+                      // 🏆 MI RANKING - Posición destacada
+                      /*   _buildAnimatedWidget(1, _buildMyRankingCard()),
+                      const SizedBox(height: 20), */
+                      _buildAnimatedWidget(2, _buildNextSessionCTA()),
+                      const SizedBox(height: 12),
                       _buildAnimatedWidget(
-                        2,
+                        3,
                         _buildActionCard(
                           icon: Icons.school_rounded,
                           color: AppColors.secondary,
@@ -250,7 +259,7 @@ class _ExaniHomeScreenState extends State<ExaniHomeScreen>
                       ),
                       const SizedBox(height: 12),
                       _buildAnimatedWidget(
-                        3,
+                        4,
                         _buildActionCard(
                           icon: Icons.timer_rounded,
                           color: AppColors.orange,
@@ -272,7 +281,7 @@ class _ExaniHomeScreenState extends State<ExaniHomeScreen>
                       ),
                       const SizedBox(height: 12),
                       _buildAnimatedWidget(
-                        4,
+                        5,
                         _buildActionCard(
                           icon: Icons.picture_as_pdf_rounded,
                           color: AppColors.red,
@@ -298,7 +307,7 @@ class _ExaniHomeScreenState extends State<ExaniHomeScreen>
                       ),
                       const SizedBox(height: 12),
                       _buildAnimatedWidget(
-                        5,
+                        6,
                         _buildActionCard(
                           icon: Icons.menu_book_rounded,
                           color: AppColors.purple,
@@ -346,7 +355,7 @@ class _ExaniHomeScreenState extends State<ExaniHomeScreen>
                         ),
                       ),
                       const SizedBox(height: 20),
-                      _buildAnimatedWidget(6, _buildLeaderboardPreview()),
+                      _buildAnimatedWidget(7, _buildLeaderboardPreview()),
                       const SizedBox(height: 16),
                       ValueListenableBuilder<bool>(
                         valueListenable: PurchaseService().isPro,
@@ -488,6 +497,230 @@ class _ExaniHomeScreenState extends State<ExaniHomeScreen>
   }
 
   // ─── Next Best Session CTA ───────────────────────────────────────────────
+
+  // ─── Quick Quiz Hero Banner ─────────────────────────────────────────────
+
+  Widget _buildQuickQuizHero() {
+    return GestureDetector(
+      onTap: () {
+        SoundService().playTap();
+        Navigator.push(
+          context,
+          _slideRoute(
+            QuizSetupScreen(
+              examId: _activeExamId.toString(),
+              examName: _activeExamName,
+            ),
+          ),
+        ).then((_) => _loadStats());
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              AppColors.primary,
+              AppColors.primary.withValues(alpha: 0.8),
+              AppColors.secondary,
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primary.withValues(alpha: 0.4),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                // Badge "Recomendado"
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.25),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.4),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text('⚡', style: TextStyle(fontSize: 12)),
+                      const SizedBox(width: 4),
+                      Text(
+                        'RECOMENDADO',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white.withValues(alpha: 0.95),
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Spacer(),
+                // Badge de tiempo
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    '⏱️ 2-5 min',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white.withValues(alpha: 0.9),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            // Título principal
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Icon(
+                    Icons.flash_on_rounded,
+                    color: Colors.white,
+                    size: 32,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Quiz Rápido',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'La forma más rápida de ganar puntos',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.white.withValues(alpha: 0.85),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            // Features
+            Row(
+              children: [
+                _buildQuickFeature(icon: '🎯', label: '5-15 preguntas'),
+                const SizedBox(width: 12),
+                _buildQuickFeature(icon: '🏆', label: 'Gana puntos'),
+                const SizedBox(width: 12),
+                _buildQuickFeature(icon: '🔥', label: 'Sin presión'),
+              ],
+            ),
+            const SizedBox(height: 16),
+            // CTA Button
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.15),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(
+                    'Comenzar Quiz',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Icon(
+                    Icons.arrow_forward_rounded,
+                    color: AppColors.primary,
+                    size: 20,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickFeature({required String icon, required String label}) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(icon, style: const TextStyle(fontSize: 14)),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white.withValues(alpha: 0.95),
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ─── Next Session CTA ────────────────────────────────────────────────────
 
   Widget _buildNextSessionCTA() {
     return Container(

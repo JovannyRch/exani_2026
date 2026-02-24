@@ -59,7 +59,11 @@ class LeaderboardService {
         try {
           final posRaw = await _sb.rpc(
             'get_my_leaderboard_position',
-            params: {'p_exam_id': examId, 'p_week_start': wsStr},
+            params: {
+              'p_user_id': currentUserId,
+              'p_exam_id': examId,
+              'p_week_start': wsStr,
+            },
           );
           if (posRaw != null && posRaw is List && posRaw.isNotEmpty) {
             myPos = MyLeaderboardPosition.fromJson(
@@ -92,10 +96,7 @@ class LeaderboardService {
   Future<void> refresh({required int examId}) async {
     try {
       // Recalcular en servidor
-      await _sb.rpc(
-        'compute_weekly_leaderboard',
-        params: {'p_exam_id': examId},
-      );
+      await _sb.rpc('compute_weekly_leaderboard');
       await loadLeaderboard(examId: examId);
     } catch (e) {
       debugPrint('Error refreshing leaderboard: $e');

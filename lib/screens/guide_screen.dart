@@ -5,6 +5,7 @@ import 'package:exani/theme/app_theme.dart';
 import 'package:exani/widgets/ad_banner_widget.dart';
 import 'package:exani/widgets/content_image.dart';
 import 'package:exani/widgets/duo_button.dart';
+import 'package:exani/widgets/latex_text.dart';
 import 'package:flutter/material.dart';
 
 class GuideScreen extends StatefulWidget {
@@ -184,7 +185,7 @@ class _GuideScreenState extends State<GuideScreen> {
                       ],
 
                       // Question text
-                      Text(
+                      LatexText(
                         q.text,
                         style: TextStyle(
                           fontSize: 21,
@@ -291,7 +292,7 @@ class _GuideScreenState extends State<GuideScreen> {
                                 ],
                               ),
                               const SizedBox(height: 10),
-                              Text(
+                              LatexText(
                                 q.explanation!,
                                 style: TextStyle(
                                   fontSize: 14,

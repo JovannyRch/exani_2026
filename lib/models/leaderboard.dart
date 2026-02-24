@@ -12,6 +12,7 @@ class LeaderboardEntry {
   final int avgTimeMs;
   final int totalQuestions;
   final int sessionsCount;
+  final int totalPoints;
 
   /// True si es el usuario actual
   final bool isCurrentUser;
@@ -25,6 +26,7 @@ class LeaderboardEntry {
     required this.avgTimeMs,
     required this.totalQuestions,
     required this.sessionsCount,
+    required this.totalPoints,
     this.isCurrentUser = false,
   });
 
@@ -42,6 +44,7 @@ class LeaderboardEntry {
       avgTimeMs: (json['avg_time_ms'] as num).toInt(),
       totalQuestions: (json['total_questions'] as num).toInt(),
       sessionsCount: (json['sessions_count'] as num).toInt(),
+      totalPoints: (json['total_points'] as num?)?.toInt() ?? 0,
       isCurrentUser: uid == currentUserId,
     );
   }
@@ -78,6 +81,7 @@ class MyLeaderboardPosition {
   final int totalQuestions;
   final int sessionsCount;
   final int totalParticipants;
+  final int totalPoints;
 
   const MyLeaderboardPosition({
     required this.rank,
@@ -86,6 +90,7 @@ class MyLeaderboardPosition {
     required this.totalQuestions,
     required this.sessionsCount,
     required this.totalParticipants,
+    required this.totalPoints,
   });
 
   factory MyLeaderboardPosition.fromJson(Map<String, dynamic> json) {
@@ -96,6 +101,7 @@ class MyLeaderboardPosition {
       totalQuestions: (json['total_questions'] as num).toInt(),
       sessionsCount: (json['sessions_count'] as num).toInt(),
       totalParticipants: (json['total_participants'] as num).toInt(),
+      totalPoints: (json['total_points'] as num?)?.toInt() ?? 0,
     );
   }
 
