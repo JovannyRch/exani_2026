@@ -11,6 +11,7 @@ import 'package:exani/services/database_service.dart';
 import 'package:exani/services/purchase_service.dart';
 import 'package:exani/services/sound_service.dart';
 import 'package:exani/services/supabase_service.dart';
+import 'package:exani/services/theme_service.dart';
 import 'package:exani/theme/app_theme.dart';
 import 'package:exani/widgets/ad_banner_widget.dart';
 import 'package:exani/widgets/app_drawer.dart';
@@ -38,7 +39,7 @@ class ExaniHomeScreen extends StatefulWidget {
 }
 
 class _ExaniHomeScreenState extends State<ExaniHomeScreen>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, ThemeModeRebuildMixin<ExaniHomeScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   late final List<AnimationController> _controllers;
@@ -49,6 +50,9 @@ class _ExaniHomeScreenState extends State<ExaniHomeScreen>
   int _avgAccuracy = 0;
   int _streak = 0;
   String _weakAreaName = '';
+  int? _myRank;
+  int? _totalParticipants;
+  int _weeklyPoints = 0;
   late int _activeExamId;
   late String _activeExamName;
 
@@ -101,10 +105,18 @@ class _ExaniHomeScreenState extends State<ExaniHomeScreen>
 
       // Get weakest area from Supabase user stats
       String? weakArea;
+      int? myRank;
+      int? totalParticipants;
+      int weeklyPoints = 0;
       try {
         weakArea = await SupabaseService().getWeakestAreaName(
           examId: _activeExamId,
         );
+
+        final rank = await _loadMyLeaderboardPosition();
+        myRank = rank?.rank;
+        totalParticipants = rank?.totalParticipants;
+        weeklyPoints = rank?.totalPoints ?? 0;
       } catch (e) {
         // Ignore if not logged in or no data yet
       }
@@ -115,9 +127,48 @@ class _ExaniHomeScreenState extends State<ExaniHomeScreen>
           _avgAccuracy = (stats['bestScore'] as num).round();
           _streak = stats['streak'] as int;
           _weakAreaName = weakArea ?? '';
+          _myRank = myRank;
+          _totalParticipants = totalParticipants;
+          _weeklyPoints = weeklyPoints;
         });
       }
     } catch (_) {}
+  }
+
+  Future<_LeaderboardPositionSnapshot?> _loadMyLeaderboardPosition() async {
+    final sb = SupabaseService();
+    if (!sb.isLoggedIn) return null;
+
+    try {
+      final weekStart = _currentWeekStart().toIso8601String().substring(0, 10);
+      final raw = await sb.rpc(
+        'get_my_leaderboard_position',
+        params: {
+          'p_user_id': sb.userId,
+          'p_exam_id': _activeExamId,
+          'p_week_start': weekStart,
+        },
+      );
+
+      if (raw == null) return null;
+      if (raw is List && raw.isNotEmpty) {
+        return _LeaderboardPositionSnapshot.fromJson(
+          raw.first as Map<String, dynamic>,
+        );
+      }
+      if (raw is Map<String, dynamic>) {
+        return _LeaderboardPositionSnapshot.fromJson(raw);
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  DateTime _currentWeekStart() {
+    final now = DateTime.now();
+    final monday = now.subtract(Duration(days: now.weekday - 1));
+    return DateTime(monday.year, monday.month, monday.day);
   }
 
   /// Maneja el cambio de examen activo desde el drawer
@@ -234,9 +285,8 @@ class _ExaniHomeScreenState extends State<ExaniHomeScreen>
                       _buildAnimatedWidget(1, _buildQuickQuizHero()),
                       const SizedBox(height: 20),
 
-                      // 🏆 MI RANKING - Posición destacada
-                      /*   _buildAnimatedWidget(1, _buildMyRankingCard()),
-                      const SizedBox(height: 20), */
+                      _buildAnimatedWidget(2, _buildLeaderboardSpotlight()),
+                      const SizedBox(height: 14),
                       _buildAnimatedWidget(2, _buildNextSessionCTA()),
                       const SizedBox(height: 12),
                       _buildAnimatedWidget(
@@ -354,8 +404,6 @@ class _ExaniHomeScreenState extends State<ExaniHomeScreen>
                           },
                         ),
                       ),
-                      const SizedBox(height: 20),
-                      _buildAnimatedWidget(7, _buildLeaderboardPreview()),
                       const SizedBox(height: 16),
                       ValueListenableBuilder<bool>(
                         valueListenable: PurchaseService().isPro,
@@ -821,7 +869,11 @@ class _ExaniHomeScreenState extends State<ExaniHomeScreen>
 
   // ─── Leaderboard Preview ─────────────────────────────────────────────────
 
-  Widget _buildLeaderboardPreview() {
+  Widget _buildLeaderboardSpotlight() {
+    final bool ranked = _myRank != null && (_totalParticipants ?? 0) > 0;
+    final percentile =
+        ranked ? ((_myRank! / _totalParticipants!) * 100).ceil() : null;
+
     return GestureDetector(
       onTap: () {
         SoundService().playTap();
@@ -831,11 +883,28 @@ class _ExaniHomeScreenState extends State<ExaniHomeScreen>
         );
       },
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.cardBorder, width: 2),
+          gradient:
+              ranked
+                  ? LinearGradient(
+                    colors: [
+                      AppColors.orange.withValues(alpha: 0.18),
+                      AppColors.primary.withValues(alpha: 0.12),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                  : null,
+          color: ranked ? null : AppColors.surface,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color:
+                ranked
+                    ? AppColors.orange.withValues(alpha: 0.5)
+                    : AppColors.cardBorder,
+            width: 2,
+          ),
         ),
         child: Row(
           children: [
@@ -857,7 +926,9 @@ class _ExaniHomeScreenState extends State<ExaniHomeScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Ranking semanal',
+                    ranked
+                        ? 'Vas #$_myRank de $_totalParticipants'
+                        : 'Sube al ranking semanal',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -866,7 +937,9 @@ class _ExaniHomeScreenState extends State<ExaniHomeScreen>
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'Compite con otros aspirantes',
+                    ranked
+                        ? 'Top $percentile% • $_weeklyPoints puntos esta semana'
+                        : 'Completa más quiz rápidos para aparecer y escalar posiciones',
                     style: TextStyle(
                       fontSize: 13,
                       color: AppColors.textSecondary,
@@ -963,6 +1036,26 @@ class _ExaniHomeScreenState extends State<ExaniHomeScreen>
     return SlideTransition(
       position: _slideAnimations[index],
       child: FadeTransition(opacity: _fadeAnimations[index], child: child),
+    );
+  }
+}
+
+class _LeaderboardPositionSnapshot {
+  final int rank;
+  final int totalParticipants;
+  final int totalPoints;
+
+  const _LeaderboardPositionSnapshot({
+    required this.rank,
+    required this.totalParticipants,
+    required this.totalPoints,
+  });
+
+  factory _LeaderboardPositionSnapshot.fromJson(Map<String, dynamic> json) {
+    return _LeaderboardPositionSnapshot(
+      rank: (json['rank'] as num).toInt(),
+      totalParticipants: (json['total_participants'] as num?)?.toInt() ?? 0,
+      totalPoints: (json['total_points'] as num?)?.toInt() ?? 0,
     );
   }
 }

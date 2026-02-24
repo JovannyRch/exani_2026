@@ -22,7 +22,8 @@ class AppDrawer extends StatefulWidget {
   State<AppDrawer> createState() => _AppDrawerState();
 }
 
-class _AppDrawerState extends State<AppDrawer> {
+class _AppDrawerState extends State<AppDrawer>
+    with ThemeModeRebuildMixin<AppDrawer> {
   String _userName = 'Estudiante';
   String _userEmail = '';
   int? _activeExamId;
@@ -44,7 +45,8 @@ class _AppDrawerState extends State<AppDrawer> {
       final userExams = await SupabaseService().getUserExams();
 
       // Get all available exams
-      final allExamsData = await SupabaseService().exams
+      final allExamsData = await SupabaseService()
+          .exams
           .select()
           .eq('is_active', true)
           .order('id');
@@ -123,40 +125,39 @@ class _AppDrawerState extends State<AppDrawer> {
     // Confirm deletion
     final confirm = await showDialog<bool>(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            backgroundColor: AppColors.surface,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            title: Text(
-              '¿Remover examen?',
-              style: TextStyle(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            content: Text(
-              'Se eliminará este examen de tu preparación. Tu progreso se mantendrá guardado.',
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: Text(
+          '¿Remover examen?',
+          style: TextStyle(
+            color: AppColors.textPrimary,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Text(
+          'Se eliminará este examen de tu preparación. Tu progreso se mantendrá guardado.',
+          style: TextStyle(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(
+              'Cancelar',
               style: TextStyle(color: AppColors.textSecondary),
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: Text(
-                  'Cancelar',
-                  style: TextStyle(color: AppColors.textSecondary),
-                ),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: const Text(
-                  'Remover',
-                  style: TextStyle(color: AppColors.red),
-                ),
-              ),
-            ],
           ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text(
+              'Remover',
+              style: TextStyle(color: AppColors.red),
+            ),
+          ),
+        ],
+      ),
     );
 
     if (confirm != true) return;
@@ -199,20 +200,19 @@ class _AppDrawerState extends State<AppDrawer> {
 
             // Exámenes
             Expanded(
-              child:
-                  _isLoading
-                      ? const Center(child: CircularProgressIndicator())
-                      : SingleChildScrollView(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildExamsSection(),
-                            const Divider(height: 32),
-                            _buildOptionsSection(),
-                          ],
-                        ),
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildExamsSection(),
+                          const Divider(height: 32),
+                          _buildOptionsSection(),
+                        ],
                       ),
+                    ),
             ),
 
             const Divider(height: 1),
@@ -364,55 +364,53 @@ class _AppDrawerState extends State<AppDrawer> {
           // Show dialog to select exam
           final selectedExam = await showDialog<Map<String, dynamic>>(
             context: context,
-            builder:
-                (context) => AlertDialog(
-                  backgroundColor: AppColors.surface,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  title: Text(
-                    'Agregar Examen',
-                    style: TextStyle(
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.bold,
+            builder: (context) => AlertDialog(
+              backgroundColor: AppColors.surface,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              title: Text(
+                'Agregar Examen',
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: availableExams.map((exam) {
+                  return ListTile(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                  ),
-                  content: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children:
-                        availableExams.map((exam) {
-                          return ListTile(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            title: Text(
-                              exam['name'] as String,
-                              style: TextStyle(
-                                color: AppColors.textPrimary,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            subtitle: Text(
-                              exam['description'] as String? ?? '',
-                              style: TextStyle(
-                                color: AppColors.textSecondary,
-                                fontSize: 12,
-                              ),
-                            ),
-                            onTap: () => Navigator.pop(context, exam),
-                          );
-                        }).toList(),
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: Text(
-                        'Cancelar',
-                        style: TextStyle(color: AppColors.textSecondary),
+                    title: Text(
+                      exam['name'] as String,
+                      style: TextStyle(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                  ],
+                    subtitle: Text(
+                      exam['description'] as String? ?? '',
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 12,
+                      ),
+                    ),
+                    onTap: () => Navigator.pop(context, exam),
+                  );
+                }).toList(),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(
+                    'Cancelar',
+                    style: TextStyle(color: AppColors.textSecondary),
+                  ),
                 ),
+              ],
+            ),
           );
 
           if (selectedExam != null) {
@@ -434,6 +432,8 @@ class _AppDrawerState extends State<AppDrawer> {
   }
 
   Widget _buildOptionsSection() {
+    final themeService = ThemeService();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -450,22 +450,26 @@ class _AppDrawerState extends State<AppDrawer> {
           ),
         ),
 
-        // Theme Toggle
+        // Theme selector
         _DrawerTile(
-          icon:
-              ThemeService().isDark
-                  ? Icons.light_mode_rounded
-                  : Icons.dark_mode_rounded,
-          title: 'Tema ${ThemeService().isDark ? "Claro" : "Oscuro"}',
-          trailing: Switch(
-            value: ThemeService().isDark,
-            onChanged: (value) {
-              SoundService().playTap();
-              ThemeService().toggleTheme();
-              setState(() {});
-            },
-            activeColor: AppColors.primary,
+          icon: _themeIcon(themeService.currentMode),
+          title: 'Tema ${themeService.modeLabel}',
+          trailing: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              themeService.modeLabel,
+              style: const TextStyle(
+                color: AppColors.primary,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
+          onTap: _showThemeModeSheet,
         ),
 
         // Progress
@@ -512,6 +516,107 @@ class _AppDrawerState extends State<AppDrawer> {
     );
   }
 
+  IconData _themeIcon(ThemeMode mode) {
+    switch (mode) {
+      case ThemeMode.dark:
+        return Icons.dark_mode_rounded;
+      case ThemeMode.light:
+        return Icons.light_mode_rounded;
+      case ThemeMode.system:
+        return Icons.brightness_auto_rounded;
+    }
+  }
+
+  Future<void> _showThemeModeSheet() async {
+    final selected = await showModalBottomSheet<ThemeMode>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        final current = ThemeService().currentMode;
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.cardBorder,
+                  borderRadius: BorderRadius.circular(99),
+                ),
+              ),
+              const SizedBox(height: 12),
+              _themeOptionTile(
+                mode: ThemeMode.system,
+                current: current,
+                icon: Icons.brightness_auto_rounded,
+                title: 'Sistema',
+                subtitle: 'Usar el tema del dispositivo',
+              ),
+              _themeOptionTile(
+                mode: ThemeMode.light,
+                current: current,
+                icon: Icons.light_mode_rounded,
+                title: 'Claro',
+                subtitle: 'Tema luminoso',
+              ),
+              _themeOptionTile(
+                mode: ThemeMode.dark,
+                current: current,
+                icon: Icons.dark_mode_rounded,
+                title: 'Oscuro',
+                subtitle: 'Tema oscuro',
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (selected == null || !mounted) return;
+
+    await ThemeService().setThemeMode(selected);
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  Widget _themeOptionTile({
+    required ThemeMode mode,
+    required ThemeMode current,
+    required IconData icon,
+    required String title,
+    required String subtitle,
+  }) {
+    final isSelected = current == mode;
+    return ListTile(
+      onTap: () => Navigator.pop(context, mode),
+      leading: Icon(
+        icon,
+        color: isSelected ? AppColors.primary : AppColors.textSecondary,
+      ),
+      title: Text(
+        title,
+        style: TextStyle(
+          color: AppColors.textPrimary,
+          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+        ),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+      ),
+      trailing: isSelected
+          ? const Icon(Icons.check_circle_rounded, color: AppColors.primary)
+          : null,
+    );
+  }
+
   Widget _buildLogoutButton() {
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -521,40 +626,39 @@ class _AppDrawerState extends State<AppDrawer> {
 
           final confirm = await showDialog<bool>(
             context: context,
-            builder:
-                (context) => AlertDialog(
-                  backgroundColor: AppColors.surface,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  title: Text(
-                    '¿Cerrar sesión?',
-                    style: TextStyle(
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  content: Text(
-                    'Tu progreso se mantendrá guardado.',
+            builder: (context) => AlertDialog(
+              backgroundColor: AppColors.surface,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              title: Text(
+                '¿Cerrar sesión?',
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              content: Text(
+                'Tu progreso se mantendrá guardado.',
+                style: TextStyle(color: AppColors.textSecondary),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: Text(
+                    'Cancelar',
                     style: TextStyle(color: AppColors.textSecondary),
                   ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      child: Text(
-                        'Cancelar',
-                        style: TextStyle(color: AppColors.textSecondary),
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, true),
-                      child: const Text(
-                        'Cerrar sesión',
-                        style: TextStyle(color: AppColors.red),
-                      ),
-                    ),
-                  ],
                 ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: const Text(
+                    'Cerrar sesión',
+                    style: TextStyle(color: AppColors.red),
+                  ),
+                ),
+              ],
+            ),
           );
 
           if (confirm == true) {
@@ -598,10 +702,9 @@ class _ExamTile extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       decoration: BoxDecoration(
-        color:
-            isActive
-                ? AppColors.primary.withValues(alpha: 0.1)
-                : AppColors.surface,
+        color: isActive
+            ? AppColors.primary.withValues(alpha: 0.1)
+            : AppColors.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isActive ? AppColors.primary : AppColors.cardBorder,
@@ -609,13 +712,12 @@ class _ExamTile extends StatelessWidget {
         ),
       ),
       child: ListTile(
-        onTap:
-            onTap != null
-                ? () {
-                  SoundService().playTap();
-                  onTap?.call();
-                }
-                : null,
+        onTap: onTap != null
+            ? () {
+                SoundService().playTap();
+                onTap?.call();
+              }
+            : null,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         leading: Icon(
           examCode == 'exani_ii'
@@ -630,27 +732,25 @@ class _ExamTile extends StatelessWidget {
             color: isActive ? AppColors.primary : AppColors.textPrimary,
           ),
         ),
-        subtitle:
-            isActive
-                ? Text(
-                  'Activo ahora',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                )
-                : null,
-        trailing:
-            onRemove != null
-                ? IconButton(
-                  icon: Icon(Icons.close_rounded, color: AppColors.textLight),
-                  onPressed: () {
-                    SoundService().playTap();
-                    onRemove?.call();
-                  },
-                )
-                : isActive
+        subtitle: isActive
+            ? Text(
+                'Activo ahora',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+              )
+            : null,
+        trailing: onRemove != null
+            ? IconButton(
+                icon: Icon(Icons.close_rounded, color: AppColors.textLight),
+                onPressed: () {
+                  SoundService().playTap();
+                  onRemove?.call();
+                },
+              )
+            : isActive
                 ? Icon(Icons.check_circle_rounded, color: AppColors.primary)
                 : null,
       ),
@@ -678,13 +778,12 @@ class _DrawerTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      onTap:
-          onTap != null
-              ? () {
-                SoundService().playTap();
-                onTap?.call();
-              }
-              : null,
+      onTap: onTap != null
+          ? () {
+              SoundService().playTap();
+              onTap?.call();
+            }
+          : null,
       leading: Icon(
         icon,
         color: iconColor ?? AppColors.textSecondary,
@@ -698,8 +797,7 @@ class _DrawerTile extends StatelessWidget {
           color: AppColors.textPrimary,
         ),
       ),
-      trailing:
-          trailing ??
+      trailing: trailing ??
           (onTap != null
               ? Icon(Icons.chevron_right_rounded, color: AppColors.textLight)
               : null),

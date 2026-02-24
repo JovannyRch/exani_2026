@@ -3,6 +3,7 @@ import 'package:exani/services/admob_service.dart';
 import 'package:exani/services/database_service.dart';
 import 'package:exani/services/purchase_service.dart';
 import 'package:exani/services/sound_service.dart';
+import 'package:exani/services/theme_service.dart';
 import 'package:exani/theme/app_theme.dart';
 import 'package:exani/widgets/content_image.dart';
 import 'package:exani/widgets/duo_button.dart';
@@ -41,7 +42,7 @@ class ReviewScreen extends StatefulWidget {
 }
 
 class _ReviewScreenState extends State<ReviewScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, ThemeModeRebuildMixin<ReviewScreen> {
   late AnimationController _animController;
   Set<int> _favoriteIds = {};
   InterstitialAd? _interstitialAd;

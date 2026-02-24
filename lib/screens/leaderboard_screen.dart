@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:exani/models/leaderboard.dart';
 import 'package:exani/services/leaderboard_service.dart';
 import 'package:exani/services/sound_service.dart';
+import 'package:exani/services/theme_service.dart';
 import 'package:exani/theme/app_theme.dart';
 
 /// Pantalla 7 MVP — Ranking semanal.
@@ -16,7 +17,9 @@ class LeaderboardScreen extends StatefulWidget {
 }
 
 class _LeaderboardScreenState extends State<LeaderboardScreen>
-    with SingleTickerProviderStateMixin {
+    with
+        SingleTickerProviderStateMixin,
+        ThemeModeRebuildMixin<LeaderboardScreen> {
   late AnimationController _animController;
   late Animation<double> _fadeAnimation;
   final _service = LeaderboardService();

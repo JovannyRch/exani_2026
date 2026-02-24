@@ -1,9 +1,16 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 class AdMobService {
-  static const bool _testAds = false; // TODO: Cambiar a false en producción
+  // In release builds this stays false unless explicitly enabled with:
+  // --dart-define=ADMOB_TEST_ADS=true
+  static const bool _forceTestAds = bool.fromEnvironment(
+    'ADMOB_TEST_ADS',
+    defaultValue: false,
+  );
+  static bool get _useTestAds => !kReleaseMode && _forceTestAds;
 
   // IDs de prueba de AdMob
   static const String _testBannerAdUnitId =
@@ -17,7 +24,7 @@ class AdMobService {
       'ca-app-pub-4665787383933447/9409633180';
 
   static String get bannerAdUnitId {
-    if (_testAds) {
+    if (_useTestAds) {
       return _testBannerAdUnitId;
     }
     if (Platform.isAndroid) {
@@ -30,7 +37,7 @@ class AdMobService {
   }
 
   static String get interstitialAdUnitId {
-    if (_testAds) {
+    if (_useTestAds) {
       return _testInterstitialAdUnitId;
     }
     if (Platform.isAndroid) {

@@ -9,6 +9,7 @@ import 'package:exani/services/notification_service.dart';
 import 'package:exani/services/purchase_service.dart';
 import 'package:exani/services/sound_service.dart';
 import 'package:exani/services/supabase_service.dart';
+import 'package:exani/services/theme_service.dart';
 import 'package:exani/theme/app_theme.dart';
 import 'package:exani/widgets/ad_banner_widget.dart';
 import 'package:exani/widgets/duo_button.dart';
@@ -45,7 +46,8 @@ class ExamScreen extends StatefulWidget {
   State<ExamScreen> createState() => _ExamScreenState();
 }
 
-class _ExamScreenState extends State<ExamScreen> {
+class _ExamScreenState extends State<ExamScreen>
+    with ThemeModeRebuildMixin<ExamScreen> {
   List<QuestionWithOptions> examQuestions = [];
   Map<int, int> answers = {};
   int currentIndex = 0;
@@ -600,7 +602,7 @@ class ResultsScreen extends StatefulWidget {
 }
 
 class _ResultsScreenState extends State<ResultsScreen>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, ThemeModeRebuildMixin<ResultsScreen> {
   static const String _notificationPromptSeenKey = 'notification_prompt_seen';
 
   late AnimationController _scoreController;
@@ -684,7 +686,7 @@ class _ResultsScreenState extends State<ResultsScreen>
       await DatabaseService().insertExamResult(result);
 
       // 2. Guardar en Supabase para el ranking
-      await _saveToSupabase();
+      final rankProgress = await _saveToSupabase();
 
       // Auto-save failed questions to favorites
       final failedIds = <int>[];
@@ -698,6 +700,8 @@ class _ResultsScreenState extends State<ResultsScreen>
         await DatabaseService().saveFailedQuestions(failedIds);
       }
 
+      _showRankProgressFeedback(rankProgress);
+
       // Check and show notification prompt on first completed session
       await _checkAndShowNotificationPrompt();
 
@@ -709,7 +713,7 @@ class _ResultsScreenState extends State<ResultsScreen>
     }
   }
 
-  Future<void> _saveToSupabase() async {
+  Future<_RankProgress?> _saveToSupabase() async {
     try {
       final sb = SupabaseService();
 
@@ -721,9 +725,11 @@ class _ResultsScreenState extends State<ResultsScreen>
           debugPrint('✅ Sesión anónima creada');
         } catch (e) {
           debugPrint('❌ Error creando sesión anónima: $e');
-          return;
+          return null;
         }
       }
+
+      final previousRank = await _fetchMyRank(sb);
 
       debugPrint('💾 Guardando sesión en Supabase...');
       debugPrint('   User ID: ${sb.userId}');
@@ -802,12 +808,72 @@ class _ResultsScreenState extends State<ResultsScreen>
       await sb.client.rpc('compute_weekly_leaderboard');
       debugPrint('   ✓ Leaderboard actualizado');
 
+      final currentRank = await _fetchMyRank(sb);
       debugPrint('✅ Session saved to Supabase: $sessionId');
+      return _RankProgress(before: previousRank, after: currentRank);
     } catch (e, stackTrace) {
       debugPrint('❌ Error saving to Supabase: $e');
       debugPrint('Stack trace: $stackTrace');
       // No interrumpir la experiencia del usuario
+      return null;
     }
+  }
+
+  Future<int?> _fetchMyRank(SupabaseService sb) async {
+    if (!sb.isLoggedIn) return null;
+
+    try {
+      final weekStart = _currentWeekStart().toIso8601String().substring(0, 10);
+      final raw = await sb.rpc(
+        'get_my_leaderboard_position',
+        params: {
+          'p_user_id': sb.userId,
+          'p_exam_id': widget.examId,
+          'p_week_start': weekStart,
+        },
+      );
+
+      if (raw is List && raw.isNotEmpty) {
+        return (raw.first['rank'] as num?)?.toInt();
+      }
+      if (raw is Map<String, dynamic>) {
+        return (raw['rank'] as num?)?.toInt();
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  DateTime _currentWeekStart() {
+    final now = DateTime.now();
+    final monday = now.subtract(Duration(days: now.weekday - 1));
+    return DateTime(monday.year, monday.month, monday.day);
+  }
+
+  void _showRankProgressFeedback(_RankProgress? progress) {
+    if (!mounted || progress == null) return;
+
+    final before = progress.before;
+    final after = progress.after;
+    if (after == null) return;
+
+    String message;
+    if (before == null) {
+      message = 'Entraste al ranking semanal: #$after. ¡Sigue así!';
+    } else if (after < before) {
+      message =
+          'Subiste ${before - after} lugar(es): ahora estás en #$after del ranking.';
+    } else if (after == before) {
+      message = 'Mantienes tu posición #$after. Otro quiz y puedes subir.';
+    } else {
+      message =
+          'Tu posición actual es #$after. Sigue practicando para remontar.';
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: AppColors.primary),
+    );
   }
 
   Future<void> _checkAndShowReviewPrompt() async {
@@ -1024,10 +1090,10 @@ class _ResultsScreenState extends State<ResultsScreen>
                           vertical: 12,
                         ),
                         decoration: BoxDecoration(
-                          color: AppColors.primary.withOpacity(0.1),
+                          color: AppColors.primary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: AppColors.primary.withOpacity(0.3),
+                            color: AppColors.primary.withValues(alpha: 0.3),
                             width: 2,
                           ),
                         ),
@@ -1136,4 +1202,11 @@ class _ResultsScreenState extends State<ResultsScreen>
       ),
     );
   }
+}
+
+class _RankProgress {
+  final int? before;
+  final int? after;
+
+  const _RankProgress({required this.before, required this.after});
 }
