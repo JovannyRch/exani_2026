@@ -32,7 +32,7 @@ class AppColors {
   static Color get textSecondary =>
       _isDark ? const Color(0xFF9E9EB3) : const Color(0xFF777777);
   static Color get textLight =>
-      _isDark ? const Color(0xFF6B6B80) : const Color(0xFFAFAFAF);
+      _isDark ? const Color(0xFF6B6B80) : const Color(0xFF8A8A8A);
 
   static const Color white = Color(0xFFFFFFFF);
 
