@@ -153,12 +153,14 @@
 **Problema:** Solo ads como ingreso. Algunos usuarios pagarían por quitar ads.
 **Propuesta:**
 
-- Versión "Pro" por compra única ($29-49 MXN):
+- ✅ **Implementado:** Versión "Pro" por suscripción mensual de $49 MXN
+  (producto `pro_monthly`):
   - Sin anuncios
   - Acceso a simulacro completo
   - Estadísticas avanzadas
+  - Cancela cuando quieras
 - Usar `in_app_purchase`
-- **Impacto:** Ingreso adicional + usuarios satisfechos
+- **Impacto:** Ingreso recurrente + usuarios satisfechos
 
 ---
 

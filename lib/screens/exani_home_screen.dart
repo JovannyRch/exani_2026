@@ -1010,7 +1010,7 @@ class _ExaniHomeScreenState extends State<ExaniHomeScreen>
                   Text(
                     isPro
                         ? 'Disfruta la app sin anuncios'
-                        : 'Sin anuncios · Compra única',
+                        : 'Sin anuncios · ${PurchaseService().pricePerPeriodString}',
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.white.withValues(alpha: 0.9),

@@ -77,6 +77,11 @@ class _ProScreenState extends State<ProScreen> with TickerProviderStateMixin {
     await PurchaseService().restorePurchases();
   }
 
+  Future<void> _handleManageSubscription() async {
+    SoundService().playTap();
+    await PurchaseService().openSubscriptionManagement();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -162,7 +167,8 @@ class _ProScreenState extends State<ProScreen> with TickerProviderStateMixin {
                                 Text(
                                   isPro
                                       ? 'Disfruta todas las ventajas sin anuncios'
-                                      : 'Desbloquea la experiencia completa',
+                                      : 'Desbloquea la experiencia completa por '
+                                          '${PurchaseService().pricePerPeriodString}',
                                   style: TextStyle(
                                     fontSize: 15,
                                     color: AppColors.textSecondary,
@@ -206,8 +212,9 @@ class _ProScreenState extends State<ProScreen> with TickerProviderStateMixin {
                           index: 3,
                           icon: Icons.favorite_rounded,
                           color: AppColors.orange,
-                          title: 'Apoya al desarrollador',
-                          subtitle: 'Compra única, acceso permanente',
+                          title: 'Cancela cuando quieras',
+                          subtitle:
+                              'Sin permanencia, gestionas todo desde la tienda',
                         ),
 
                         const SizedBox(height: 40),
@@ -221,8 +228,10 @@ class _ProScreenState extends State<ProScreen> with TickerProviderStateMixin {
                         // Disclaimer
                         Text(
                           isPro
-                              ? ''
-                              : 'Compra única · Sin suscripciones · Acceso permanente',
+                              ? 'Tu suscripción se renueva automáticamente cada mes. '
+                                  'Puedes cancelarla cuando quieras desde la tienda.'
+                              : 'Suscripción mensual de ${PurchaseService().priceString} · '
+                                  'Se renueva automáticamente · Cancela cuando quieras',
                           style: TextStyle(
                             fontSize: 12,
                             color: AppColors.textLight,
@@ -230,6 +239,10 @@ class _ProScreenState extends State<ProScreen> with TickerProviderStateMixin {
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 16),
+                        if (isPro) ...[
+                          _buildManageButton(),
+                          const SizedBox(height: 16),
+                        ],
                       ],
                     ),
                   ),
@@ -343,7 +356,7 @@ class _ProScreenState extends State<ProScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildPurchaseButton() {
-    final price = PurchaseService().priceString;
+    final price = PurchaseService().pricePerPeriodString;
     return _PressableButton(
       onTap: _purchasing ? null : _handlePurchase,
       color: const Color(0xFFFFD700),
@@ -368,7 +381,7 @@ class _ProScreenState extends State<ProScreen> with TickerProviderStateMixin {
             ),
             const SizedBox(width: 10),
             Text(
-              'Obtener Pro · $price',
+              'Suscribirme · $price',
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -385,7 +398,23 @@ class _ProScreenState extends State<ProScreen> with TickerProviderStateMixin {
     return GestureDetector(
       onTap: _handleRestore,
       child: const Text(
-        'Restaurar compra anterior',
+        'Restaurar suscripción',
+        style: TextStyle(
+          fontSize: 14,
+          color: AppColors.secondary,
+          fontWeight: FontWeight.w600,
+          decoration: TextDecoration.underline,
+          decorationColor: AppColors.secondary,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildManageButton() {
+    return GestureDetector(
+      onTap: _handleManageSubscription,
+      child: const Text(
+        'Gestionar suscripción',
         style: TextStyle(
           fontSize: 14,
           color: AppColors.secondary,
@@ -415,7 +444,7 @@ class _ProScreenState extends State<ProScreen> with TickerProviderStateMixin {
           Icon(Icons.check_circle_rounded, color: AppColors.primary, size: 28),
           SizedBox(width: 10),
           Text(
-            'Versión Pro activada',
+            'Suscripción Pro activa',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,

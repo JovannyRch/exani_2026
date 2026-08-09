@@ -64,7 +64,8 @@ final List<Question> questions = [
 
 ### 4. Configurar In-App Purchase
 
-1. Crea un producto "managed" en Google Play Console con ID `pro_version`
+1. Crea una **suscripción** en Google Play Console con ID `pro_monthly`,
+   con un plan base **mensual auto-renovable** a **$49.00 MXN**
 2. O cambia el ID:
 
 ```bash

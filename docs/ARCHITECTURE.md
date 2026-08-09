@@ -180,17 +180,29 @@ static Future<InterstitialAd?> createInterstitialAd() async {
 
 ### 2.5 PurchaseService
 
-| Propiedad            | Tipo                     | Descripción               |
-| -------------------- | ------------------------ | ------------------------- |
-| `isPro`              | `ValueNotifier<bool>`    | Estado premium observable |
-| `isProUser`          | `bool` getter            | Acceso directo            |
-| `onMessage`          | `void Function(String)?` | Callback para UI          |
-| `buyPro()`           | `Future<void>`           | Inicia compra             |
-| `restorePurchases()` | `Future<void>`           | Restaura compras          |
+| Propiedad                        | Tipo                     | Descripción                      |
+| -------------------------------- | ------------------------ | -------------------------------- |
+| `isPro`                          | `ValueNotifier<bool>`    | Estado premium observable        |
+| `isProUser`                      | `bool` getter            | Acceso directo                   |
+| `onMessage`                      | `void Function(String)?` | Callback para UI                 |
+| `priceString`                    | `String` getter          | Precio de la tienda              |
+| `pricePerPeriodString`           | `String` getter          | Precio + periodo (`.../mes`)     |
+| `buyPro()`                       | `Future<void>`           | Inicia la suscripción            |
+| `restorePurchases()`             | `Future<void>`           | Restaura la suscripción activa   |
+| `openSubscriptionManagement()`   | `Future<void>`           | Abre la gestión en la tienda     |
 
-**Product ID:** `kProProductId = 'pro_version'` (non-consumable)
+**Product ID:** `kProProductId = 'pro_monthly'` — **suscripción mensual
+auto-renovable a $49.00 MXN** (se compra con `buyNonConsumable`, que es la
+API correcta para suscripciones en `in_app_purchase`).
 
-**Persistencia:** `SharedPreferences` key `is_pro` como caché offline.
+**Persistencia:** `SharedPreferences` keys `is_pro` (caché offline) y
+`pro_verified_at` (timestamp de la última verificación con la tienda).
+
+**Ciclo de vida:** en cada `initialize()` con tienda disponible se llama a
+`restorePurchases()`. Google Play / App Store sólo reenvían suscripciones
+vigentes, así que si tras ~6 s no llegó ninguna compra del producto, se
+revoca el estado Pro. Sin tienda disponible (offline) se respeta un periodo
+de gracia de `kProOfflineGraceDays` (7 días) antes de revocar.
 
 **Patron de uso en widgets:**
 

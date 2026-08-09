@@ -96,9 +96,11 @@
 
 ### In-App Purchases
 
-- [ ] Products created in Play Console
-- [ ] Purchase flow tested
-- [ ] Restore purchases works
+- [ ] `pro_monthly` subscription created in Play Console (monthly base plan, $49.00 MXN)
+- [ ] Subscription purchase flow tested
+- [ ] Restore subscription works
+- [ ] Cancellation revokes Pro on next launch (grace period respected offline)
+- [ ] "Gestionar suscripción" deep link opens the store page
 - [ ] Receipt validation implemented
 - [ ] Pro features locked/unlocked correctly
 
